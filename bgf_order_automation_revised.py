@@ -30,8 +30,9 @@ POST_LOGIN_INDICATOR_SELECTOR = 'text="점포매출"'
 
 def run_automation():
     """Playwright를 사용하여 BGF Retail 웹사이트에 로그인"""
-    if USER_ID == 'YOUR_ID_HERE' or USER_PW == 'YOUR_PASSWORD_HERE':
-        logger.warning("기본 아이디/비밀번호가 사용되었습니다. 실제 값을 설정하세요.")
+    if not USER_ID or not USER_PW or "YOUR_" in USER_ID or "YOUR_" in USER_PW:
+        logger.critical("❌ 환경 변수가 누락되었거나 기본값이 설정되어 있습니다.")
+        sys.exit(1)
 
     with sync_playwright() as p:
         browser = None
@@ -48,12 +49,16 @@ def run_automation():
             logger.info(f"아이디 입력 필드 대기 중... (선택자: {ID_SELECTOR})")
             page.wait_for_selector(ID_SELECTOR, state='visible', timeout=60000)
             logger.info("아이디 입력 중...")
-            page.fill(ID_SELECTOR, USER_ID)
+            user_id_field = page.locator(ID_SELECTOR)
+            user_id_field.click()
+            page.keyboard.insert_text(USER_ID)
 
             logger.info(f"비밀번호 입력 필드 대기 중... (선택자: {PW_SELECTOR})")
             page.wait_for_selector(PW_SELECTOR, state='visible', timeout=60000)
             logger.info("비밀번호 입력 중...")
-            page.fill(PW_SELECTOR, USER_PW)
+            password_field = page.locator(PW_SELECTOR)
+            password_field.click()
+            page.keyboard.insert_text(USER_PW)
 
             logger.info(f"로그인 버튼 대기 중... (선택자: {LOGIN_BUTTON_SELECTOR})")
             page.wait_for_selector(LOGIN_BUTTON_SELECTOR, state='visible', timeout=60000)
