@@ -51,19 +51,30 @@ logging.basicConfig(
 # ===============================================================================
 
 async def login(page: Page) -> bool:
-    """BGF Retail 스토어 사이트에 로그인"""
+    """BGF Retail 점포관리 시스템에 로그인합니다."""
     logging.info(f"로그인 페이지로 이동: {LOGIN_URL}")
+
     try:
+        # 1. 로그인 페이지 이동 및 네트워크 로딩 완료 대기
         await page.goto(LOGIN_URL, timeout=30000)
-        logging.info("로그인 페이지 로딩 완료.")
-        await page.wait_for_selector(ID_INPUT_SELECTOR, timeout=15000)
-        await page.fill(ID_INPUT_SELECTOR, BGF_USER_ID)
-        await page.wait_for_selector(PW_INPUT_SELECTOR, timeout=15000)
-        await page.fill(PW_INPUT_SELECTOR, BGF_USER_PW)
-        await page.wait_for_selector(LOGIN_BUTTON_SELECTOR, state='visible', timeout=10000)
-        await page.click(LOGIN_BUTTON_SELECTOR)
+        await page.wait_for_load_state("networkidle")
+
+        # 2. 사용자 ID 입력
+        await page.wait_for_selector("#userId", state="visible", timeout=30000)
+        await page.fill("#userId", BGF_USER_ID)
+
+        # 3. 비밀번호 입력
+        await page.wait_for_selector("#userPwd", state="visible", timeout=10000)
+        await page.fill("#userPwd", BGF_USER_PW)
+
+        # 4. 로그인 버튼 클릭
+        await page.wait_for_selector(".btn_login", state="visible", timeout=10000)
+        await page.click(".btn_login")
+
+        # 5. 로그인 성공 시 메뉴 등장 여부 확인
         await page.wait_for_selector(ORDER_MENU_SELECTOR, timeout=20000)
 
+        # 6. 팝업 창 닫기 시도 (있을 경우만)
         try:
             popup_close_button = page.locator(POPUP_CLOSE_BUTTON_SELECTOR)
             if await popup_close_button.is_visible(timeout=5000):
@@ -80,7 +91,7 @@ async def login(page: Page) -> bool:
         logging.error(f"로그인 과정 중 타임아웃 발생: {e}")
         return False
     except Exception as e:
-        logging.exception(f"로그인 중 예상치 못한 오류 발생: {e}")
+        logging.exception(f"로그인 중 예외 발생: {e}")
         return False
 
 async def navigate_to_integrated_order(page: Page) -> bool:
