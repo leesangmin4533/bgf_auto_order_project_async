@@ -1,7 +1,10 @@
 import logging
 import os
 import sys
+from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, TimeoutError
+
+load_dotenv()
 
 # --- 로깅 설정 ---
 console_handler = logging.StreamHandler(sys.stdout)
