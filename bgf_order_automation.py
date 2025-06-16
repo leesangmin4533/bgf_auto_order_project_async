@@ -51,19 +51,59 @@ logging.basicConfig(
 # ===============================================================================
 
 async def login(page: Page) -> bool:
-    """BGF Retail 스토어 사이트에 로그인"""
-    logging.info(f"로그인 페이지로 이동: {LOGIN_URL}")
+    """BGF Retail 스토어 사이트에 로그인 (디버그 정보 포함)"""
+    logging.info(f"로그인 페이지 이동 중: {LOGIN_URL}")
     try:
         await page.goto(LOGIN_URL, timeout=30000)
-        logging.info("로그인 페이지 로딩 완료.")
-        await page.wait_for_selector(ID_INPUT_SELECTOR, timeout=15000)
-        await page.fill(ID_INPUT_SELECTOR, BGF_USER_ID)
-        await page.wait_for_selector(PW_INPUT_SELECTOR, timeout=15000)
-        await page.fill(PW_INPUT_SELECTOR, BGF_USER_PW)
-        await page.wait_for_selector(LOGIN_BUTTON_SELECTOR, state='visible', timeout=10000)
-        await page.click(LOGIN_BUTTON_SELECTOR)
-        await page.wait_for_selector(ORDER_MENU_SELECTOR, timeout=20000)
+        await page.wait_for_load_state("networkidle")
 
+        # 1. ID 필드 상태 확인
+        try:
+            id_input = page.locator("#userId")
+            await id_input.wait_for(state="visible", timeout=15000)
+            id_enabled = await id_input.is_enabled()
+            id_editable = await id_input.is_editable()
+            logging.info(f"[userId] visible=True, enabled={id_enabled}, editable={id_editable}")
+        except Exception as e:
+            logging.error(f"[userId] 필드 탐지 실패: {e}")
+            await page.screenshot(path="error_userId_not_found.png")
+            return False
+
+        # 2. 입력 시도 전 상태 저장
+        await page.screenshot(path="before_fill_userId.png")
+
+        # 3. 키보드 방식으로 ID 입력
+        await id_input.click()
+        await page.keyboard.insert_text(BGF_USER_ID)
+        await page.screenshot(path="after_fill_userId.png")
+
+        # 4. PW 필드 상태 확인
+        try:
+            pw_input = page.locator("#userPwd")
+            await pw_input.wait_for(state="visible", timeout=10000)
+            pw_enabled = await pw_input.is_enabled()
+            pw_editable = await pw_input.is_editable()
+            logging.info(f"[userPwd] visible=True, enabled={pw_enabled}, editable={pw_editable}")
+        except Exception as e:
+            logging.error(f"[userPwd] 필드 탐지 실패: {e}")
+            await page.screenshot(path="error_userPwd_not_found.png")
+            return False
+
+        # 5. 비밀번호 입력
+        await pw_input.click()
+        await page.keyboard.insert_text(BGF_USER_PW)
+        await page.screenshot(path="after_fill_userPwd.png")
+
+        # 6. 로그인 버튼 클릭
+        await page.wait_for_selector(".btn_login", state="visible", timeout=10000)
+        await page.click(".btn_login")
+        await page.screenshot(path="after_login_click.png")
+
+        # 7. 로그인 후 메뉴 도착 확인
+        await page.wait_for_selector(ORDER_MENU_SELECTOR, timeout=20000)
+        logging.info("로그인 성공. 메뉴 확인됨.")
+
+        # 초기 공지 팝업이 존재하면 닫는다.
         try:
             popup_close_button = page.locator(POPUP_CLOSE_BUTTON_SELECTOR)
             if await popup_close_button.is_visible(timeout=5000):
@@ -77,10 +117,12 @@ async def login(page: Page) -> bool:
         return True
 
     except PlaywrightTimeoutError as e:
-        logging.error(f"로그인 과정 중 타임아웃 발생: {e}")
+        logging.error(f"타임아웃 발생: {e}")
+        await page.screenshot(path="timeout_error.png")
         return False
     except Exception as e:
-        logging.exception(f"로그인 중 예상치 못한 오류 발생: {e}")
+        logging.exception(f"로그인 중 예외 발생: {e}")
+        await page.screenshot(path="unknown_login_error.png")
         return False
 
 async def navigate_to_integrated_order(page: Page) -> bool:
