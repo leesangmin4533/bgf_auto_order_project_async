@@ -4,7 +4,10 @@ import csv
 import logging
 import os
 import sys
+from dotenv import load_dotenv
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError, Page, Locator
+
+load_dotenv()
 
 # ===============================================================================
 # 1. 초기 설정 및 상수 정의
