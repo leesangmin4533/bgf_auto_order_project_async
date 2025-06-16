@@ -2,6 +2,7 @@ import asyncio
 import json
 import csv
 import logging
+import os
 import sys
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError, Page, Locator
 
@@ -10,8 +11,9 @@ from playwright.async_api import async_playwright, TimeoutError as PlaywrightTim
 # ===============================================================================
 
 # --- 사용자 설정 변수 ---
-BGF_USER_ID = "46513"
-BGF_USER_PW = "1113"
+# 로그인에 필요한 아이디와 비밀번호는 환경 변수에서 읽어옵니다.
+BGF_USER_ID = os.environ.get("BGF_USER_ID")
+BGF_USER_PW = os.environ.get("BGF_USER_PW")
 
 # 발주 추천 기준이 되는 안전 재고 수량
 SAFETY_STOCK_THRESHOLD = 5
@@ -52,6 +54,10 @@ logging.basicConfig(
 
 async def login(page: Page) -> bool:
     """BGF Retail 스토어 사이트에 로그인 (디버그 정보 포함)"""
+    if not BGF_USER_ID or not BGF_USER_PW:
+        logging.error("환경 변수 BGF_USER_ID와 BGF_USER_PW가 설정되어 있지 않습니다.")
+        return False
+
     logging.info(f"로그인 페이지 이동 중: {LOGIN_URL}")
     try:
         await page.goto(LOGIN_URL, timeout=30000)
