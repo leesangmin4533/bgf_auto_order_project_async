@@ -1,0 +1,27 @@
+{
+  "id_field.png": {
+    "label": "ID 입력창",
+    "x": 1270,
+    "y": 544
+  },
+  "password_field.png": {
+    "label": "비밀번호 입력창",
+    "x": 1276,
+    "y": 632
+  },
+  "login_button.png": {
+    "label": "로그인 버튼",
+    "x": 1284,
+    "y": 760
+  },
+  "after_login.png": {
+    "label": "로그인 성공 후 마커(UI)",
+    "x": 190,
+    "y": 230
+  },
+  "popup_close.png": {
+    "label": "팝업 닫기 버튼",
+    "x": 1545,
+    "y": 1288
+  }
+}
