@@ -1,17 +1,18 @@
-import json
 import time
 import pyautogui
-import os
 
-ORDER_POINTS_FILE = os.path.join(os.path.dirname(__file__), "full_order_points.json")
+from utils import load_points
+
+ORDER_POINTS_FILE = "full_order_points.json"
 
 
 def load_order_points():
-    with open(ORDER_POINTS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """발주 메뉴 이동을 위한 좌표 정보 로드."""
+    return load_points(ORDER_POINTS_FILE)
 
 
-def perform_actions(points):
+def perform_actions(points: dict) -> None:
+    """저장된 단계에 따라 마우스 동작 수행."""
     print("=== 발주 메뉴 자동 진입 시작 ===")
     for key, step in points.items():
         pos = step["position"]
@@ -28,9 +29,13 @@ def perform_actions(points):
         time.sleep(0.5)
 
 
-if __name__ == "__main__":
+def main():
     try:
         points = load_order_points()
         perform_actions(points)
     except Exception as e:
         print(f"❌ 오류 발생: {e}")
+
+
+if __name__ == "__main__":
+    main()
