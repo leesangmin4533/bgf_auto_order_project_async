@@ -1,0 +1,17 @@
+{
+  "order_main.png": {
+    "label": "발주 클릭",
+    "position": [265, 276],
+    "action": "click"
+  },
+  "order_sub.png": {
+    "label": "판매실적발주 클릭",
+    "position": [699, 383],
+    "action": "click"
+  },
+  "lunchbox.png": {
+    "label": "도시락 더블클릭",
+    "position": [957, 612],
+    "action": "double_click"
+  }
+}
