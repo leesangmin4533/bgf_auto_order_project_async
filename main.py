@@ -2,6 +2,9 @@
 
 import json
 import os
+import glob
+import subprocess
+import sys
 
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
@@ -16,15 +19,33 @@ def main() -> None:
     user_id = os.getenv("BGF_ID")
     user_pw = os.getenv("BGF_PW")
 
+    structure_file = "page_structure.json"
+    if not os.path.exists(structure_file):
+        matches = glob.glob("page_structure*.json")
+        if matches:
+            structure_file = matches[0]
+        else:
+            print(f"{structure_file} 파일을 찾을 수 없습니다. 구조를 추출합니다.")
+            try:
+                subprocess.run([sys.executable, "auto_login_and_parse_icontext.py"], check=True)
+            except Exception as e:
+                print(f"구조 파일 생성 실패: {e}")
+                return
+
+    try:
+        with open(structure_file, "r", encoding="utf-8") as f:
+            structure = json.load(f)
+    except FileNotFoundError:
+        print(f"{structure_file} 파일을 여는 데 실패했습니다.")
+        return
+
     # ① Playwright 브라우저 실행
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto(url)
 
-        # ② 페이지 구조 로드
-        with open("page_structure.json", "r", encoding="utf-8") as f:
-            structure = json.load(f)
+        # ② 페이지 구조 로드 완료 후 로그인 진행
 
         id_field = structure["id"]
         pw_field = structure["password"]
