@@ -2,5 +2,5 @@
   "user_id": "your_id_here",
   "user_pw": "your_password_here",
   "wait_after_login": 2,
-  "popup_selectors": ["#popupClose", "img[src*='popup_close']", "[class*='close']"]
+  "popup_selectors": ["#popupClose", "img[src*='popup_close']"]
 }

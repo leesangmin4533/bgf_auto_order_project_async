@@ -32,7 +32,7 @@ def main() -> None:
     wait_after_login = runtime_config.get("wait_after_login", 0)
     popup_selectors = runtime_config.get(
         "popup_selectors",
-        ["#popupClose", "img[src*='popup_close']", "[class*='close']"],
+        ["#popupClose", "img[src*='popup_close']"],
     )
 
     structure_file = os.path.join(BASE_DIR, "page_structure.json")
@@ -82,13 +82,6 @@ def main() -> None:
         page.keyboard.type(user_pw)
         page.locator(login_keyword).click()
 
-        # 로그인 실패 경고창이 존재하면 닫기 시도
-        try:
-            close_btn = page.locator("[class*='close']")
-            if close_btn.count() > 0:
-                close_btn.click()
-        except Exception as e:
-            print(f"경고창 닫기 실패: {e}")
 
         if wait_after_login:
             page.wait_for_timeout(wait_after_login * 1000)
