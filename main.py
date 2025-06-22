@@ -2,24 +2,41 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+from dotenv import load_dotenv
+import os
 
 
 def main() -> None:
     """크롬을 실행해 로그인 후 팝업을 닫는 초기 단계만 수행."""
     url = "https://store.bgfretail.com/websrc/deploy/index.html"
 
+    load_dotenv()
+    user_id = os.getenv("BGF_ID")
+    user_pw = os.getenv("BGF_PW")
+
     # ① 브라우저 실행
     driver = webdriver.Chrome()
     driver.get(url)
 
     # ② 로그인 진행 (필요시 셀렉터 수정)
+    try:
+        frame = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "iframe"))
+        )
+        driver.switch_to.frame(frame)
+    except TimeoutException:
+        pass
+
     WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.ID, "loginId"))
-    ).send_keys("46513")
+    ).send_keys(user_id)
     WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.ID, "loginPwd"))
-    ).send_keys("1113")
-    driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
+    ).send_keys(user_pw)
+    WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))
+    ).click()
 
     # ③ 로그인 후 나타나는 팝업 닫기
     try:
