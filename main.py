@@ -59,6 +59,8 @@ def main() -> None:
         login_keyword = structure["login_button"]
 
         # ③ 로그인 진행
+        if not user_id:
+            raise ValueError("user_id가 설정되지 않았습니다.")
         page.fill(f"#{id_field}", user_id)
         page.fill(f"#{pw_field}", user_pw)
         page.click(f"#{login_keyword}")
