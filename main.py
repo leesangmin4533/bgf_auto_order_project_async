@@ -61,55 +61,70 @@ def main() -> None:
         return
 
     # ① Playwright 브라우저 실행
+    normal_exit = False
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
-        page.goto(url)
-
-        # ② 페이지 구조 로드 완료 후 로그인 진행
-
-        id_field = structure["id"]
-        pw_field = structure["password"]
-        login_keyword = structure["login_button"]
-
-        # ③ 로그인 진행
-        if not user_id or not user_pw:
-            print("LOGIN_ID 또는 LOGIN_PW가 설정되지 않았습니다.")
-            return
-        page.locator(id_field).click()
-        page.keyboard.type(user_id)
-        page.locator(pw_field).click()
-        page.keyboard.type(user_pw)
-        page.locator(login_keyword).click()
-
-
-        if wait_after_login:
-            page.wait_for_timeout(wait_after_login * 1000)
-
-        # ④ 로그인 후 나타나는 팝업 닫기
-        for sel in popup_selectors:
-            if page.locator(sel).count() > 0:
-                page.locator(sel).click()
-                break
-
-        # STZZ120 페이지 팝업 닫기 처리
         try:
-            close_selector = (
-                "#mainframe\\.HFrameSet00\\.VFrameSet00\\.FrameSet\\.WorkFrame\\.STZZ120_P0\\.form\\.btn_close\\:icontext"
-            )
-            close_btn = page.locator(close_selector)
-            if close_btn.count() > 0 and close_btn.is_visible():
-                close_btn.click()
+            page.goto(url)
+
+            # ② 페이지 구조 로드 완료 후 로그인 진행
+
+            id_field = structure["id"]
+            pw_field = structure["password"]
+            login_keyword = structure["login_button"]
+
+            # ③ 로그인 진행
+            if not user_id or not user_pw:
+                print("LOGIN_ID 또는 LOGIN_PW가 설정되지 않았습니다.")
+                return
+            page.locator(id_field).click()
+            page.keyboard.type(user_id)
+            page.locator(pw_field).click()
+            page.keyboard.type(user_pw)
+            page.locator(login_keyword).click()
+
+            if wait_after_login:
+                page.wait_for_timeout(wait_after_login * 1000)
+
+            # ④ 로그인 후 나타나는 팝업 닫기
+            print("팝업 감지 여부")
+            clicked = False
+            for sel in popup_selectors:
+                if page.locator(sel).count() > 0:
+                    page.locator(sel).click()
+                    clicked = True
+                    break
+            if clicked:
+                print("닫기 버튼 클릭 완료")
+            else:
+                print("버튼 없음")
+
+            # STZZ120 페이지 팝업 닫기 처리
+            try:
+                close_selector = (
+                    "#mainframe\\.HFrameSet00\\.VFrameSet00\\.FrameSet\\.WorkFrame\\.STZZ120_P0\\.form\\.btn_close\\:icontext"
+                )
+                close_btn = page.locator(close_selector)
+                if close_btn.count() > 0 and close_btn.is_visible():
+                    close_btn.click()
+            except Exception as e:
+                print(f"STZZ120 팝업 닫기 실패: {e}")
+
+            # ⑤ 정적 HTML 데이터 파싱 예시
+            html = page.content()
+            soup = BeautifulSoup(html, "html.parser")
+            products = [p.get_text(strip=True) for p in soup.select(".product-name")]
+            print("상품 목록:", products)
+
+            normal_exit = True
         except Exception as e:
-            print(f"STZZ120 팝업 닫기 실패: {e}")
-
-        # ⑤ 정적 HTML 데이터 파싱 예시
-        html = page.content()
-        soup = BeautifulSoup(html, "html.parser")
-        products = [p.get_text(strip=True) for p in soup.select(".product-name")]
-        print("상품 목록:", products)
-
-        browser.close()
+            print(f"오류 발생: {e}")
+        finally:
+            try:
+                browser.close()
+            finally:
+                print("정상 종료" if normal_exit else "비정상 종료")
 
     # 이후 단계는 추후 구현 예정
     # detect_and_click_text("발주")
