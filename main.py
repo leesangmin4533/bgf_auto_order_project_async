@@ -1,10 +1,11 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from dotenv import load_dotenv
+"""메인 자동화 스크립트."""
+
 import json
 import os
+
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+from playwright.sync_api import sync_playwright
 
 
 def main() -> None:
@@ -15,41 +16,38 @@ def main() -> None:
     user_id = os.getenv("BGF_ID")
     user_pw = os.getenv("BGF_PW")
 
-    # ① 브라우저 실행
-    driver = webdriver.Chrome()
-    driver.get(url)
+    # ① Playwright 브라우저 실행
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        page = browser.new_page()
+        page.goto(url)
 
-    # ② 페이지 구조 로드
-    with open("page_structure.json", "r", encoding="utf-8") as f:
-        structure = json.load(f)
+        # ② 페이지 구조 로드
+        with open("page_structure.json", "r", encoding="utf-8") as f:
+            structure = json.load(f)
 
-    id_field = structure["id"]
-    pw_field = structure["password"]
-    login_keyword = structure["login_button"]
+        id_field = structure["id"]
+        pw_field = structure["password"]
+        login_keyword = structure["login_button"]
 
-    # ③ 로그인 진행 - iframe 전환 없이 직접 입력
-    id_elem = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, id_field))
-    )
-    pw_elem = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, pw_field))
-    )
-    driver.execute_script("arguments[0].value = arguments[1];", id_elem, user_id)
-    driver.execute_script("arguments[0].value = arguments[1];", pw_elem, user_pw)
+        # ③ 로그인 진행
+        page.fill(f"#{id_field}", user_id)
+        page.fill(f"#{pw_field}", user_pw)
+        page.click(f"#{login_keyword}")
 
-    login_btn = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, f"[id*='{login_keyword.split(':')[0]}']"))
-    )
-    driver.execute_script("arguments[0].click();", login_btn)
+        # ④ 로그인 후 나타나는 팝업 닫기
+        try:
+            page.click(".popup-close")
+        except Exception:
+            print("팝업을 찾을 수 없거나 닫지 못했습니다.")
 
-    # ③ 로그인 후 나타나는 팝업 닫기
-    try:
-        popup_close = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, ".popup-close"))
-        )
-        popup_close.click()
-    except Exception:
-        print("팝업을 찾을 수 없거나 닫지 못했습니다.")
+        # ⑤ 정적 HTML 데이터 파싱 예시
+        html = page.content()
+        soup = BeautifulSoup(html, "html.parser")
+        products = [p.get_text(strip=True) for p in soup.select(".product-name")]
+        print("상품 목록:", products)
+
+        browser.close()
 
     # 이후 단계는 추후 구현 예정
     # detect_and_click_text("발주")
