@@ -2,8 +2,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 from dotenv import load_dotenv
+import json
 import os
 
 
@@ -19,24 +19,28 @@ def main() -> None:
     driver = webdriver.Chrome()
     driver.get(url)
 
-    # ② 로그인 진행 (필요시 셀렉터 수정)
-    try:
-        frame = WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "iframe"))
-        )
-        driver.switch_to.frame(frame)
-    except TimeoutException:
-        pass
+    # ② 페이지 구조 로드
+    with open("page_structure.json", "r", encoding="utf-8") as f:
+        structure = json.load(f)
 
-    WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located((By.ID, "loginId"))
-    ).send_keys(user_id)
-    WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located((By.ID, "loginPwd"))
-    ).send_keys(user_pw)
-    WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))
-    ).click()
+    id_field = structure["id"]
+    pw_field = structure["password"]
+    login_keyword = structure["login_button"]
+
+    # ③ 로그인 진행 - iframe 전환 없이 직접 입력
+    id_elem = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.ID, id_field))
+    )
+    pw_elem = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.ID, pw_field))
+    )
+    driver.execute_script("arguments[0].value = arguments[1];", id_elem, user_id)
+    driver.execute_script("arguments[0].value = arguments[1];", pw_elem, user_pw)
+
+    login_btn = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, f"[id*='{login_keyword.split(':')[0]}']"))
+    )
+    driver.execute_script("arguments[0].click();", login_btn)
 
     # ③ 로그인 후 나타나는 팝업 닫기
     try:
