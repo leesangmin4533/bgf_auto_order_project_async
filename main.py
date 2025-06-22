@@ -21,22 +21,27 @@ def main() -> None:
 
     structure_file = "page_structure.json"
     if not os.path.exists(structure_file):
-        matches = glob.glob("page_structure*.json")
+        # glob으로 유사한 JSON 파일을 탐색
+        matches = glob.glob("*structure*.json")
         if matches:
             structure_file = matches[0]
+            print(f"{structure_file} 파일을 대신 사용합니다.")
         else:
-            print(f"{structure_file} 파일을 찾을 수 없습니다. 구조를 추출합니다.")
+            print(f"{structure_file} 파일을 찾을 수 없습니다. 구조를 자동으로 생성합니다.")
             try:
-                subprocess.run([sys.executable, "auto_login_and_parse_icontext.py"], check=True)
+                subprocess.run([sys.executable, "build_structure.py"], check=True)
             except Exception as e:
                 print(f"구조 파일 생성 실패: {e}")
+                return
+            if not os.path.exists(structure_file):
+                print(f"구조 파일 생성 후에도 {structure_file}을 찾지 못했습니다.")
                 return
 
     try:
         with open(structure_file, "r", encoding="utf-8") as f:
             structure = json.load(f)
     except FileNotFoundError:
-        print(f"{structure_file} 파일을 여는 데 실패했습니다.")
+        print(f"{structure_file} 파일을 여는 데 실패했습니다. 경로를 확인하세요.")
         return
 
     # ① Playwright 브라우저 실행
