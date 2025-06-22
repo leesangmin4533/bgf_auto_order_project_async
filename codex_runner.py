@@ -60,6 +60,17 @@ def run() -> None:
                 page.locator(sel).click()
                 break
 
+        # Additional popup handling for STZZ120 page
+        try:
+            close_selector = (
+                "#mainframe\\.HFrameSet00\\.VFrameSet00\\.FrameSet\\.WorkFrame\\.STZZ120_P0\\.form\\.btn_close\\:icontext"
+            )
+            close_btn = page.locator(close_selector)
+            if close_btn.count() > 0 and close_btn.is_visible():
+                close_btn.click()
+        except Exception as e:
+            print(f"STZZ120 팝업 닫기 실패: {e}")
+
         browser.close()
 
 
