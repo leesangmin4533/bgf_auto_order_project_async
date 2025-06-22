@@ -4,6 +4,7 @@ import time
 import subprocess
 import pyautogui
 import pygetwindow as gw
+from playwright.sync_api import Page
 
 # 공통 설정 및 유틸리티 함수 모음
 TESSERACT_CMD = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
@@ -69,3 +70,28 @@ def click_and_type(points: dict, point_key: str, text: str | None = None, tab_af
         pyautogui.press("tab")
         print("➡️ 탭키 전환됨")
     return x, y
+
+
+def setup_dialog_handler(page, auto_accept: bool = True) -> None:
+    """Register a Playwright dialog handler on the given page.
+
+    Parameters
+    ----------
+    page : playwright.sync_api.Page
+        The Playwright page object to attach the dialog listener to.
+    auto_accept : bool, optional
+        If True (default), automatically call ``accept()`` on dialogs.
+        If False, dialogs will be ``dismiss()`` instead.
+    """
+
+    def _handle(dialog) -> None:
+        try:
+            if auto_accept:
+                dialog.accept()
+            else:
+                dialog.dismiss()
+            print(f"자동 다이얼로그 처리: {dialog.message}")
+        except Exception as e:
+            print(f"다이얼로그 처리 오류: {e}")
+
+    page.on("dialog", _handle)
