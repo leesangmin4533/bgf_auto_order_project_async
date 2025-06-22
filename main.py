@@ -6,6 +6,8 @@ import glob
 import subprocess
 import sys
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
@@ -15,21 +17,21 @@ def main() -> None:
     """크롬을 실행해 로그인 후 팝업을 닫는 초기 단계만 수행."""
     url = "https://store.bgfretail.com/websrc/deploy/index.html"
 
-    load_dotenv()
+    load_dotenv(os.path.join(BASE_DIR, '.env'))
     user_id = os.getenv("BGF_ID")
     user_pw = os.getenv("BGF_PW")
 
-    structure_file = "page_structure.json"
+    structure_file = os.path.join(BASE_DIR, "page_structure.json")
     if not os.path.exists(structure_file):
         # glob으로 유사한 JSON 파일을 탐색
-        matches = glob.glob("*structure*.json")
+        matches = glob.glob(os.path.join(BASE_DIR, "*structure*.json"))
         if matches:
             structure_file = matches[0]
             print(f"{structure_file} 파일을 대신 사용합니다.")
         else:
             print(f"{structure_file} 파일을 찾을 수 없습니다. 구조를 자동으로 생성합니다.")
             try:
-                subprocess.run([sys.executable, "build_structure.py"], check=True)
+                subprocess.run([sys.executable, os.path.join(BASE_DIR, "build_structure.py")], check=True, cwd=BASE_DIR)
             except Exception as e:
                 print(f"구조 파일 생성 실패: {e}")
                 return
