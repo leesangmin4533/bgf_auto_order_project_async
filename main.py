@@ -38,11 +38,12 @@ def save_product_names(driver: webdriver.Chrome, file_path: str = "상품명_목
     print(f"✅ 상품명 {len(names)}개 저장 완료 → {file_path}")
 
 
-def attach_driver() -> webdriver.Chrome:
-    """현재 실행 중인 Chrome에 연결."""
+def attach_driver(url: str) -> webdriver.Chrome:
+    """새로운 Chrome 드라이버를 실행하고 지정된 URL로 이동."""
     options = webdriver.ChromeOptions()
-    options.add_experimental_option("debuggerAddress", "localhost:9222")
-    return webdriver.Chrome(options=options)
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+    return driver
 
 
 def main() -> None:
@@ -66,7 +67,7 @@ def main() -> None:
     order_points = load_order_points()
     perform_actions(order_points)
 
-    driver = attach_driver()
+    driver = attach_driver(url)
     save_product_names(driver)
     driver.quit()
     check_and_input_inventory(INVENTORY_X, INVENTORY_Y)
