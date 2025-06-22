@@ -18,6 +18,7 @@ def launch_chrome_fullscreen(url: str) -> None:
         CHROME_PATH,
         f"--user-data-dir={USER_DATA_DIR}",
         f"--profile-directory={PROFILE_NAME}",
+        "--remote-debugging-port=9222",
         "--new-window",
         "--kiosk",
         url,

@@ -1,12 +1,11 @@
 import os
 import time
-import cv2
-import numpy as np
 import pyautogui
-import pytesseract
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import json
 
 from utils import (
-    TESSERACT_CMD,
     launch_chrome_fullscreen,
     load_points,
     click_point,
@@ -16,32 +15,34 @@ from text_clicker import detect_and_click_text
 from order_navigation import load_order_points, perform_actions
 from ocr_utils import check_and_input_inventory
 
-pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
-
 # 재고 확인 좌표 (필요시 수정)
 INVENTORY_X = 700
 INVENTORY_Y = 400
 
 
-def save_fullscreen_ocr_debug() -> None:
-    """전체 화면을 OCR 처리하여 디버그 용도로 저장."""
-    full_image = pyautogui.screenshot()
-    full_image_np = np.array(full_image)
-    gray = cv2.cvtColor(full_image_np, cv2.COLOR_RGB2GRAY)
-    _, thresh = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY)
+PRODUCT_NAME_SELECTOR = ".product-name"
 
-    debug_dir = os.path.join(os.path.dirname(__file__), "ocr_debug")
-    os.makedirs(debug_dir, exist_ok=True)
-    cv2.imwrite(os.path.join(debug_dir, "상품명_전체화면.png"), thresh)
 
-    data = pytesseract.image_to_data(
-        thresh, lang="kor+eng", output_type=pytesseract.Output.DICT
-    )
-    with open(os.path.join(debug_dir, "상품명_목록.txt"), "w", encoding="utf-8") as f:
-        for word in data["text"]:
-            if word.strip():
-                f.write(word.strip() + "\n")
-    print("📸 상품명 전체화면 및 텍스트 목록 저장 완료")
+def save_product_names(driver: webdriver.Chrome, file_path: str = "상품명_목록.txt") -> None:
+    """HTML에서 상품명을 추출하여 파일에 저장."""
+    elements = driver.find_elements(By.CSS_SELECTOR, PRODUCT_NAME_SELECTOR)
+    names = [e.text.strip() for e in elements if e.text.strip()]
+
+    if file_path.endswith(".json"):
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(names, f, ensure_ascii=False, indent=2)
+    else:
+        with open(file_path, "w", encoding="utf-8") as f:
+            for name in names:
+                f.write(name + "\n")
+    print(f"✅ 상품명 {len(names)}개 저장 완료 → {file_path}")
+
+
+def attach_driver() -> webdriver.Chrome:
+    """현재 실행 중인 Chrome에 연결."""
+    options = webdriver.ChromeOptions()
+    options.add_experimental_option("debuggerAddress", "localhost:9222")
+    return webdriver.Chrome(options=options)
 
 
 def main() -> None:
@@ -65,7 +66,9 @@ def main() -> None:
     order_points = load_order_points()
     perform_actions(order_points)
 
-    save_fullscreen_ocr_debug()
+    driver = attach_driver()
+    save_product_names(driver)
+    driver.quit()
     check_and_input_inventory(INVENTORY_X, INVENTORY_Y)
 
 
