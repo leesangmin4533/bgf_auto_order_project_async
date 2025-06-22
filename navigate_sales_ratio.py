@@ -2,7 +2,7 @@ import json
 import os
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
-from utils import setup_dialog_handler
+from utils import setup_dialog_handler, close_popups
 
 load_dotenv()
 
@@ -82,6 +82,7 @@ def run():
             print(f"오류 발생: {e}")
         finally:
             try:
+                close_popups(page)
                 browser.close()
             finally:
                 print("정상 종료" if normal_exit else "비정상 종료")
