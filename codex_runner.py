@@ -44,12 +44,6 @@ def run() -> None:
         page.keyboard.type(user_pw)
         page.locator(st["login_button"]).click()
 
-        try:
-            close_btn = page.locator("[class*='close']")
-            if close_btn.count() > 0:
-                close_btn.click()
-        except Exception as e:
-            print(f"경고창 닫기 실패: {e}")
 
         wait_after_login = cfg.get("wait_after_login", 0)
         if wait_after_login:
