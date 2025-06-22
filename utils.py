@@ -95,3 +95,48 @@ def setup_dialog_handler(page, auto_accept: bool = True) -> None:
             print(f"다이얼로그 처리 오류: {e}")
 
     page.on("dialog", _handle)
+
+
+def close_popups(
+    page: Page,
+    repeat: int = 2,
+    interval: int = 1000,
+    final_wait: int = 3000,
+) -> int:
+    """Detect and close popups containing '닫기' text.
+
+    Parameters
+    ----------
+    page : Page
+        The Playwright page object to operate on.
+    repeat : int, optional
+        Number of passes to check for popups. Default is 2.
+    interval : int, optional
+        Delay between passes in milliseconds. Default is 1000.
+    final_wait : int, optional
+        Extra wait time in milliseconds after handling popups. Default is 3000.
+
+    Returns
+    -------
+    int
+        Total number of popups closed.
+    """
+
+    total_closed = 0
+    for attempt in range(repeat):
+        buttons = page.locator("div.nexacontentsbox:has-text('닫기')")
+        for i in range(buttons.count()):
+            btn = buttons.nth(i)
+            if btn.is_visible():
+                try:
+                    btn.click()
+                    total_closed += 1
+                    page.wait_for_timeout(500)
+                except Exception as e:  # pragma: no cover - simple logging
+                    print(f"팝업 닫기 실패: {e}")
+        if attempt < repeat - 1:
+            page.wait_for_timeout(interval)
+
+    print(f"총 {total_closed}개의 팝업 닫음")
+    page.wait_for_timeout(final_wait)
+    return total_closed
