@@ -1,6 +1,7 @@
 import json
 import os
 from playwright.sync_api import sync_playwright
+from utils import setup_dialog_handler
 from dotenv import load_dotenv
 
 # Load environment variables from .env
@@ -37,6 +38,7 @@ def run() -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
+        setup_dialog_handler(page)
         try:
             page.goto(url)
 

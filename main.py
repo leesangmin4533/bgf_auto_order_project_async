@@ -14,6 +14,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
+from utils import setup_dialog_handler
 
 
 def main() -> None:
@@ -65,6 +66,7 @@ def main() -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
+        setup_dialog_handler(page)
         try:
             page.goto(url)
 
