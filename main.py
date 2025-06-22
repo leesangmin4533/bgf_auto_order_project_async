@@ -5,6 +5,10 @@ import os
 import glob
 import subprocess
 import sys
+from dotenv import load_dotenv
+
+# .env 파일 로드
+load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -16,13 +20,15 @@ def main() -> None:
     """크롬을 실행해 로그인 후 팝업을 닫는 초기 단계만 수행."""
     url = "https://store.bgfretail.com/websrc/deploy/index.html"
 
-    # Load runtime configuration for credentials and settings
+    # Load runtime configuration for additional settings
     config_path = os.path.join(BASE_DIR, "runtime_config.json")
     with open(config_path, "r", encoding="utf-8") as f:
         runtime_config = json.load(f)
 
-    user_id = runtime_config.get("user_id")
-    user_pw = runtime_config.get("user_pw")
+    # 로그인에 사용할 ID/PW는 .env 파일에서 읽음
+    user_id = os.getenv("LOGIN_ID")
+    user_pw = os.getenv("LOGIN_PW")
+
     wait_after_login = runtime_config.get("wait_after_login", 0)
     popup_selectors = runtime_config.get(
         "popup_selectors",
@@ -67,13 +73,22 @@ def main() -> None:
         login_keyword = structure["login_button"]
 
         # ③ 로그인 진행
-        if not user_id:
-            raise ValueError("user_id가 설정되지 않았습니다.")
+        if not user_id or not user_pw:
+            print("LOGIN_ID 또는 LOGIN_PW가 설정되지 않았습니다.")
+            return
         page.locator(id_field).click()
         page.keyboard.type(user_id)
         page.locator(pw_field).click()
         page.keyboard.type(user_pw)
         page.locator(login_keyword).click()
+
+        # 로그인 실패 경고창이 존재하면 닫기 시도
+        try:
+            close_btn = page.locator("[class*='close']")
+            if close_btn.count() > 0:
+                close_btn.click()
+        except Exception as e:
+            print(f"경고창 닫기 실패: {e}")
 
         if wait_after_login:
             page.wait_for_timeout(wait_after_login * 1000)
