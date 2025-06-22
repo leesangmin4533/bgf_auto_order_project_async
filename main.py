@@ -9,7 +9,6 @@ import sys
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
 
@@ -17,9 +16,18 @@ def main() -> None:
     """크롬을 실행해 로그인 후 팝업을 닫는 초기 단계만 수행."""
     url = "https://store.bgfretail.com/websrc/deploy/index.html"
 
-    load_dotenv(os.path.join(BASE_DIR, '.env'))
-    user_id = os.getenv("BGF_ID")
-    user_pw = os.getenv("BGF_PW")
+    # Load runtime configuration for credentials and settings
+    config_path = os.path.join(BASE_DIR, "runtime_config.json")
+    with open(config_path, "r", encoding="utf-8") as f:
+        runtime_config = json.load(f)
+
+    user_id = runtime_config.get("user_id")
+    user_pw = runtime_config.get("user_pw")
+    wait_after_login = runtime_config.get("wait_after_login", 0)
+    popup_selectors = runtime_config.get(
+        "popup_selectors",
+        ["#popupClose", "img[src*='popup_close']", "[class*='close']"],
+    )
 
     structure_file = os.path.join(BASE_DIR, "page_structure.json")
     if not os.path.exists(structure_file):
@@ -61,15 +69,20 @@ def main() -> None:
         # ③ 로그인 진행
         if not user_id:
             raise ValueError("user_id가 설정되지 않았습니다.")
-        page.fill(id_field, user_id)
-        page.fill(pw_field, user_pw)
-        page.click(login_keyword)
+        page.locator(id_field).click()
+        page.keyboard.type(user_id)
+        page.locator(pw_field).click()
+        page.keyboard.type(user_pw)
+        page.locator(login_keyword).click()
+
+        if wait_after_login:
+            page.wait_for_timeout(wait_after_login * 1000)
 
         # ④ 로그인 후 나타나는 팝업 닫기
-        try:
-            page.click(".popup-close")
-        except Exception:
-            print("팝업을 찾을 수 없거나 닫지 못했습니다.")
+        for sel in popup_selectors:
+            if page.locator(sel).count() > 0:
+                page.locator(sel).click()
+                break
 
         # ⑤ 정적 HTML 데이터 파싱 예시
         html = page.content()

@@ -1,5 +1,5 @@
 {
-  "id": "login_id",
-  "password": "login_pw",
-  "login_button": "btn_login"
+  "id": "[id='mainframe.HFrameSet00.LoginFrame.form.div_login.form.edt_id\\:input']",
+  "password": "[id='mainframe.HFrameSet00.LoginFrame.form.div_login.form.edt_pw\\:input']",
+  "login_button": "[id='mainframe.HFrameSet00.LoginFrame.form.div_login.form.btn_login']"
 }
