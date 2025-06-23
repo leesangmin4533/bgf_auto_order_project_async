@@ -13,6 +13,13 @@ _closed_popups = 0
 _processed_popups = False
 # 팝업 닫기 실패가 연속 발생한 횟수
 _popup_failure_count = 0
+_ignore_popup_failure = False
+
+
+def set_ignore_popup_failure(value: bool) -> None:
+    """Set whether popup failures should be ignored."""
+    global _ignore_popup_failure
+    _ignore_popup_failure = value
 
 
 def log(msg: str) -> None:
@@ -22,8 +29,8 @@ def log(msg: str) -> None:
 
 
 def popups_handled() -> bool:
-    """Return ``True`` if expected popups were already closed."""
-    return _closed_popups >= EXPECTED_POPUPS
+    """Return ``True`` if expected popups were already closed or ignored."""
+    return _ignore_popup_failure or _closed_popups >= EXPECTED_POPUPS
 
 
 def inject_init_cleanup_script(page: Page) -> None:
@@ -238,12 +245,26 @@ def close_popups(
         "text=닫습니다",
         "button:has-text('닫기')",
         "[role='button']:has-text('닫기')",
+        "a:has-text('닫기')",
+        "[aria-label='닫기']",
+        "button:has-text('Close')",
+        "[aria-label='close']",
+        "button:has-text('✕')",
+        "text=✕",
     ]
     attr_selectors = [
         "button[id*='close']",
         "button[class*='close']",
+        "a[class*='close']",
+        "div[class*='close']",
+        "span[class*='close']",
         "[role='button'][id*='close']",
         "[role='button'][class*='close']",
+        "button.close",
+        "a.close",
+        ".btn-close",
+        ".modal-close",
+        "[data-dismiss='modal']",
     ]
     selectors = text_selectors + attr_selectors
 
@@ -303,12 +324,26 @@ def remaining_popup_button_ids(page: Page) -> list[str]:
         "text=닫습니다",
         "button:has-text('닫기')",
         "[role='button']:has-text('닫기')",
+        "a:has-text('닫기')",
+        "[aria-label='닫기']",
+        "button:has-text('Close')",
+        "[aria-label='close']",
+        "button:has-text('✕')",
+        "text=✕",
     ]
     attr_selectors = [
         "button[id*='close']",
         "button[class*='close']",
+        "a[class*='close']",
+        "div[class*='close']",
+        "span[class*='close']",
         "[role='button'][id*='close']",
         "[role='button'][class*='close']",
+        "button.close",
+        "a.close",
+        ".btn-close",
+        ".modal-close",
+        "[data-dismiss='modal']",
     ]
     selectors = text_selectors + attr_selectors
 

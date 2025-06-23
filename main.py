@@ -27,6 +27,7 @@ from utils import (
     process_popups_once,
     close_stzz120_popup,
     inject_init_cleanup_script,
+    set_ignore_popup_failure,
     log,
 )
 
@@ -50,6 +51,8 @@ def main() -> None:
         "popup_selectors",
         ["#popupClose", "img[src*='popup_close']"],
     )
+    ignore_popup_failure = runtime_config.get("ignore_popup_failure", False)
+    set_ignore_popup_failure(ignore_popup_failure)
 
     structure_file = os.path.join(BASE_DIR, "page_structure.json")
     if not os.path.exists(structure_file):
@@ -112,8 +115,11 @@ def main() -> None:
                 process_popups_once(page, force=True)
                 attempts += 1
             if not popups_handled():
-                log("❗ 팝업을 모두 닫지 못했습니다. 자동화를 종료합니다")
-                return
+                if ignore_popup_failure:
+                    log("⚠️ 팝업을 모두 닫지 못했으나 계속 진행합니다")
+                else:
+                    log("❗ 팝업을 모두 닫지 못했습니다. 자동화를 종료합니다")
+                    return
 
             log("🟡 STZZ120 팝업 닫기 시도")
             try:
@@ -122,6 +128,12 @@ def main() -> None:
                 close_popups(page, repeat=4, interval=1000, force=True)
             except Exception as e:
                 log(f"❗ STZZ120 팝업 닫기 실패: {e}")
+            if not popups_handled():
+                if ignore_popup_failure:
+                    log("⚠️ 일부 팝업이 남아 있지만 계속 진행합니다")
+                else:
+                    log("❗ 팝업 처리가 완료되지 않아 자동화를 종료합니다")
+                    return
 
             # 월요일에만 매출 분석 기능 실행
             if datetime.datetime.today().weekday() == 0:
