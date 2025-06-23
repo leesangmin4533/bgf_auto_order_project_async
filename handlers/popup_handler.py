@@ -93,8 +93,14 @@ def handle_text_popups(page: Page) -> None:
             break
 
 
-def close_detected_popups(page: Page, max_wait_sec: int = 30) -> bool:
-    """Repeatedly search and close popups until none remain or timeout."""
+def close_detected_popups(
+    page: Page, max_wait_sec: int = 30, max_loops: int = 3
+) -> bool:
+    """Repeatedly search and close popups until none remain or timeout.
+
+    The routine performs at least two search passes and at most ``max_loops``
+    passes to avoid infinite loops.
+    """
     text_selectors = [
         "text=닫기",
         "button:has-text('닫기')",
@@ -125,7 +131,10 @@ def close_detected_popups(page: Page, max_wait_sec: int = 30) -> bool:
     end = time.time() + max_wait_sec
     checks = 0
     loops = 0
-    while (time.time() < end or loops < 2) and loops < 10:
+    while loops < max_loops and (time.time() < end or loops < 2):
+        if "차단되었습니다" in page.content():
+            utils.log("❌ 페이지에서 차단 문구 감지")
+            return False
         if dialog_blocked(page):
             utils.log("❌ 브라우저에서 추가 대화 차단 메시지 감지")
             return False
@@ -153,6 +162,7 @@ def close_detected_popups(page: Page, max_wait_sec: int = 30) -> bool:
                         except Exception as e:
                             utils.log(f"닫기 버튼 클릭 실패: {e}")
         handle_text_popups(page)
+        page.wait_for_timeout(300)
         checks += 1
         loops += 1
         visible = False
