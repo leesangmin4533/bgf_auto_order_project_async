@@ -23,6 +23,7 @@ from utils import (
     popups_handled,
     process_popups_once,
     close_stzz120_popup,
+    inject_init_cleanup_script,
     log,
 )
 
@@ -78,6 +79,7 @@ def main() -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
+        inject_init_cleanup_script(page)
         log("✅ 브라우저 페이지 생성 완료")
         setup_dialog_handler(page)
         try:

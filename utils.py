@@ -25,6 +25,21 @@ def popups_handled() -> bool:
     """Return ``True`` if expected popups were already closed."""
     return _closed_popups >= EXPECTED_POPUPS
 
+
+def inject_init_cleanup_script(page: Page) -> None:
+    """Inject a script that removes overlays and closing popups on load."""
+    page.add_init_script(
+        """
+        document.addEventListener("DOMContentLoaded", () => {
+            document
+                .querySelectorAll(
+                    "div.nexamodaloverlay, div.nexacontentsbox:has-text('닫기')"
+                )
+                .forEach((el) => el.remove());
+        });
+        """
+    )
+
 # 공통 설정 및 유틸리티 함수 모음
 TESSERACT_CMD = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
 CHROME_PATH = r"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"

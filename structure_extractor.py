@@ -5,7 +5,7 @@ from typing import Optional
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from utils import setup_dialog_handler
+from utils import setup_dialog_handler, inject_init_cleanup_script
 
 
 ATTRIBUTE_ORDER = ["id", "name", "placeholder", "aria-label"]
@@ -33,6 +33,7 @@ def extract_structure(url: str, output_path: str = "page_structure.json") -> Non
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
+        inject_init_cleanup_script(page)
         setup_dialog_handler(page)
         page.goto(url)
         page.wait_for_load_state("networkidle")

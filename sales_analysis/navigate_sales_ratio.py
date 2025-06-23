@@ -9,6 +9,7 @@ from utils import (
     close_popups,
     popups_handled,
     process_popups_once,
+    inject_init_cleanup_script,
     log,
 )
 
@@ -80,6 +81,7 @@ def run():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
+        inject_init_cleanup_script(page)
         setup_dialog_handler(page)
         try:
             page.goto(url)
