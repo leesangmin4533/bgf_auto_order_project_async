@@ -1,6 +1,6 @@
 import datetime
 from pathlib import Path
-from playwright.sync_api import Page
+from playwright.sync_api import Page, expect
 from utils import popups_handled, log
 
 
@@ -55,7 +55,7 @@ def extract_sales_detail(page: Page) -> Path:
             row = left_rows.nth(i)
             code = row.inner_text().strip()
             row.click()
-            page.wait_for_timeout(500)
+            expect(page.locator("#gdDetail div[class^='gridrow_']")).to_be_visible(timeout=3000)
 
             container = page.locator("div[id*='gdDetail']")
             details = page.locator("#gdDetail div[class^='gridrow_']")

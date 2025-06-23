@@ -1,6 +1,6 @@
 from __future__ import annotations
 import time
-from playwright.sync_api import Page
+from playwright.sync_api import Page, expect
 import utils
 
 # 메시지 차단 감지용 선택자 목록
@@ -123,7 +123,7 @@ def handle_text_popups(page: Page) -> None:
                     if btn.is_visible() and btn.is_enabled():
                         try:
                             btn.click(timeout=0, force=True)
-                            frame.wait_for_timeout(300)
+                            expect(btn).not_to_be_visible(timeout=2000)
                             clicked = True
                         except Exception:
                             utils.log(f"텍스트 팝업 닫기 실패: {sel}")
@@ -197,12 +197,11 @@ def close_detected_popups(
                     if btn.is_visible():
                         try:
                             btn.click(timeout=0)
-                            frame.wait_for_timeout(300)
+                            expect(btn).not_to_be_visible(timeout=2000)
                             found = True
                         except Exception as e:
                             utils.log(f"닫기 버튼 클릭 실패: {e}")
         handle_text_popups(page)
-        page.wait_for_timeout(300)
         checks += 1
         loops += 1
         visible = False
@@ -226,7 +225,12 @@ def close_detected_popups(
             utils.popup_handled = True
             utils.log(f"✅ 팝업 처리 완료 ({checks}회 확인)")
             return True
-        page.wait_for_timeout(3000)
+        for sel in selectors:
+            try:
+                page.wait_for_selector(sel, timeout=1000)
+                break
+            except Exception:
+                continue
     utils.popup_handled = False
     utils.log("❌ 팝업 닫기 시간 초과")
     return False
