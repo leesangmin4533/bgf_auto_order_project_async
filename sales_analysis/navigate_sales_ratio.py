@@ -8,7 +8,7 @@ from utils import (
     setup_dialog_handler,
     close_popups,
     popups_handled,
-    process_popups_once,
+    handle_popup,
     inject_init_cleanup_script,
     log,
 )
@@ -96,8 +96,10 @@ def run():
             if wait_after_login:
                 page.wait_for_timeout(wait_after_login * 1000)
 
-            if not process_popups_once(page):
-                log("⚠️ 팝업을 모두 닫지 못했으나 계속 진행합니다")
+            if not popups_handled():
+                if not handle_popup(page):
+                    log("❗ 팝업을 모두 닫지 못해 작업을 중단합니다")
+                    return
 
             navigate_sales_ratio(page)
             log("메뉴 이동 완료")
