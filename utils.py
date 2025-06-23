@@ -99,22 +99,26 @@ def setup_dialog_handler(page, auto_accept: bool = True) -> None:
 
 def close_popups(
     page: Page,
-    repeat: int = 2,
+    repeat: int = 3,
     interval: int = 1000,
     final_wait: int = 3000,
+    max_wait: int | None = None,
 ) -> int:
-    """Detect and close popups containing '닫기' text.
+    """Detect and close popups on the page.
 
     Parameters
     ----------
     page : Page
         The Playwright page object to operate on.
     repeat : int, optional
-        Number of passes to check for popups. Default is 2.
+        Number of passes to check for popups. Default is 3.
     interval : int, optional
         Delay between passes in milliseconds. Default is 1000.
     final_wait : int, optional
         Extra wait time in milliseconds after handling popups. Default is 3000.
+    max_wait : int | None, optional
+        Maximum wait time in milliseconds for the overall routine. ``None`` means
+        no time limit.
 
     Returns
     -------
@@ -122,21 +126,55 @@ def close_popups(
         Total number of popups closed.
     """
 
-    total_closed = 0
-    for attempt in range(repeat):
-        buttons = page.locator("div.nexacontentsbox:has-text('닫기')")
-        for i in range(buttons.count()):
-            btn = buttons.nth(i)
-            if btn.is_visible():
-                try:
-                    btn.click()
-                    total_closed += 1
-                    page.wait_for_timeout(500)
-                except Exception as e:  # pragma: no cover - simple logging
-                    print(f"팝업 닫기 실패: {e}")
-        if attempt < repeat - 1:
-            page.wait_for_timeout(interval)
+    selectors = [
+        "div.nexacontentsbox:has-text('닫기')",
+        "button[id*='btn_close']",
+        "button[class*='btn_close']",
+        "button[id*='btnClose']",
+        "button[class*='btnClose']",
+        "button[id*='close']",
+        "button[class*='close']",
+        "[role='button'][id*='btn_close']",
+        "[role='button'][class*='btn_close']",
+        "[role='button'][id*='btnClose']",
+        "[role='button'][class*='btnClose']",
+        "[role='button'][id*='close']",
+        "[role='button'][class*='close']",
+        "button:has-text('닫기')",
+        "button:has-text('닫습니다')",
+        "[role='button']:has-text('닫기')",
+        "[role='button']:has-text('닫습니다')",
+    ]
+    selector_str = ",".join(selectors)
 
-    print(f"총 {total_closed}개의 팝업 닫음")
+    start = time.time()
+    attempts = 0
+    total_closed = 0
+    total_detected = 0
+
+    while True:
+        for frame in [page, *page.frames]:
+            buttons = frame.locator(selector_str)
+            count = buttons.count()
+            total_detected += count
+            for i in range(count):
+                btn = buttons.nth(i)
+                if btn.is_visible():
+                    try:
+                        btn.click()
+                        total_closed += 1
+                        frame.wait_for_timeout(800)
+                    except Exception as e:  # pragma: no cover - simple logging
+                        print(f"팝업 닫기 실패: {e}")
+        attempts += 1
+        elapsed = (time.time() - start) * 1000
+        if (max_wait is not None and elapsed >= max_wait) or attempts >= repeat:
+            break
+        page.wait_for_timeout(interval)
+
+    print(f"총 {total_closed}개 팝업 닫기, 감지된 버튼 {total_detected}개")
+    if total_closed < total_detected:
+        print(f"⚠️ 닫히지 않은 팝업 버튼 {total_detected - total_closed}개 존재")
+
     page.wait_for_timeout(final_wait)
     return total_closed
