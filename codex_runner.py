@@ -70,7 +70,7 @@ def run() -> None:
                 )
                 close_btn = page.locator(close_selector)
                 if close_btn.count() > 0 and close_btn.is_visible():
-                    close_btn.click(timeout=3000)
+                    close_btn.click(timeout=15000)
             except Exception as e:
                 print(f"STZZ120 팝업 닫기 실패: {e}")
 

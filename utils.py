@@ -160,6 +160,23 @@ def close_stzz120_popup(page: Page) -> bool:
     return False
 
 
+def force_click_with_timeout(page, element_id: str, max_delay_ms: int = 15000):
+    page.evaluate(f'''
+        (() => {{
+            const el = document.getElementById("{element_id}");
+            if (el) {{
+                const blocker = document.getElementById("nexacontainer") || document.body;
+                const oldStyle = blocker.style.pointerEvents;
+                blocker.style.pointerEvents = "none";
+                setTimeout(() => {{
+                    el.click();
+                    blocker.style.pointerEvents = oldStyle;
+                }}, {max_delay_ms});
+            }}
+        }})();
+    ''')
+
+
 def close_popups(
     page: Page,
     repeat: int = 4,
@@ -227,7 +244,6 @@ def close_popups(
     total_closed = 0
     total_detected = 0
 
-    page.evaluate("document.getElementById('nexacontainer').style.pointerEvents = 'none'")
     try:
         while True:
             for frame in [page, *page.frames]:
@@ -238,8 +254,10 @@ def close_popups(
                     btn = buttons.nth(i)
                     if btn.is_visible():
                         try:
-                            frame.evaluate("document.getElementById('nexacontainer').style.pointerEvents = 'none'")
-                            btn.click(timeout=3000)
+                            frame.evaluate(
+                                "(el) => { const blk = document.getElementById('nexacontainer') || document.body; const old=blk.style.pointerEvents; blk.style.pointerEvents='none'; el.click(); blk.style.pointerEvents=old; }",
+                                btn,
+                            )
                             total_closed += 1
                             frame.wait_for_timeout(800)
                         except Exception as e:  # pragma: no cover - simple logging
@@ -257,6 +275,10 @@ def close_popups(
                                     )
                                     if has_overlay:
                                         log("요소 위에 오버레이가 존재하여 클릭이 차단됨")
+                                        bid = btn.get_attribute("id")
+                                        if bid:
+                                            force_click_with_timeout(frame, bid)
+                                            total_closed += 1
                             except Exception:
                                 pass
                         finally:
