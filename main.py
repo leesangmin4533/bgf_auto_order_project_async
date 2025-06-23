@@ -103,6 +103,11 @@ def main() -> None:
             page.keyboard.type(user_pw)
             page.locator(login_keyword).click()
 
+            page.wait_for_load_state("networkidle")
+            if "login" in page.url or login_page_visible(page):
+                log("❌ 로그인 실패로 판단. 팝업 처리 생략 및 자동화 종료")
+                return
+
             if wait_after_login:
                 page.wait_for_timeout(wait_after_login * 1000)
 
