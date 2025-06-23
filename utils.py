@@ -140,7 +140,7 @@ def fallback_close_popups(page: Page) -> None:
 
 def close_popups(
     page: Page,
-    repeat: int = 3,
+    repeat: int = 4,
     interval: int = 1000,
     final_wait: int = 3000,
     max_wait: int | None = 5000,
@@ -154,7 +154,7 @@ def close_popups(
     page : Page
         The Playwright page object to operate on.
     repeat : int, optional
-        Number of passes to check for popups. Default is 3.
+        Number of passes to check for popups. Default is 4.
     interval : int, optional
         Delay between passes in milliseconds. Default is 1000.
     final_wait : int, optional
@@ -205,45 +205,48 @@ def close_popups(
     total_closed = 0
     total_detected = 0
 
-    while True:
-        for frame in [page, *page.frames]:
-            buttons = frame.locator(selector_str)
-            count = buttons.count()
-            total_detected += count
-            for i in range(count):
-                btn = buttons.nth(i)
-                if btn.is_visible():
-                    try:
-                        # temporarily disable pointer events to avoid overlay interference
-                        frame.evaluate("document.getElementById('nexacontainer').style.pointerEvents = 'none'")
-                        btn.click(timeout=3000)
-                        total_closed += 1
-                        frame.wait_for_timeout(800)
-                    except Exception as e:  # pragma: no cover - simple logging
-                        log(f"팝업 닫기 실패: {e}")
+    page.evaluate("document.getElementById('nexacontainer').style.pointerEvents = 'none'")
+    try:
+        while True:
+            for frame in [page, *page.frames]:
+                buttons = frame.locator(selector_str)
+                count = buttons.count()
+                total_detected += count
+                for i in range(count):
+                    btn = buttons.nth(i)
+                    if btn.is_visible():
                         try:
-                            bbox = btn.bounding_box()
-                            if bbox:
-                                cx = bbox["x"] + bbox["width"] / 2
-                                cy = bbox["y"] + bbox["height"] / 2
-                                has_overlay = frame.evaluate(
-                                    "(x, y, el) => { const o = document.elementFromPoint(x, y); return o && o !== el && !o.contains(el); }",
-                                    cx,
-                                    cy,
-                                    btn,
-                                )
-                                if has_overlay:
-                                    log("요소 위에 오버레이가 존재하여 클릭이 차단됨")
-                        except Exception:
-                            pass
-                    finally:
-                        # restore pointer events
-                        frame.evaluate("document.getElementById('nexacontainer').style.pointerEvents = ''")
-        attempts += 1
-        elapsed = (time.time() - start) * 1000
-        if (max_wait is not None and elapsed >= max_wait) or attempts >= repeat:
-            break
-        page.wait_for_timeout(interval)
+                            frame.evaluate("document.getElementById('nexacontainer').style.pointerEvents = 'none'")
+                            btn.click(timeout=3000)
+                            total_closed += 1
+                            frame.wait_for_timeout(800)
+                        except Exception as e:  # pragma: no cover - simple logging
+                            log(f"팝업 닫기 실패: {e}")
+                            try:
+                                bbox = btn.bounding_box()
+                                if bbox:
+                                    cx = bbox["x"] + bbox["width"] / 2
+                                    cy = bbox["y"] + bbox["height"] / 2
+                                    has_overlay = frame.evaluate(
+                                        "(x, y, el) => { const o = document.elementFromPoint(x, y); return o && o !== el && !o.contains(el); }",
+                                        cx,
+                                        cy,
+                                        btn,
+                                    )
+                                    if has_overlay:
+                                        log("요소 위에 오버레이가 존재하여 클릭이 차단됨")
+                            except Exception:
+                                pass
+                        finally:
+                            frame.evaluate("document.getElementById('nexacontainer').style.pointerEvents = ''")
+            attempts += 1
+            elapsed = (time.time() - start) * 1000
+            if (max_wait is not None and elapsed >= max_wait) or attempts >= repeat:
+                break
+            page.wait_for_timeout(interval)
+
+    finally:
+        page.evaluate("document.getElementById('nexacontainer').style.pointerEvents = ''")
 
     _closed_popups += total_closed
 
@@ -253,6 +256,22 @@ def close_popups(
         log(f"⚠️ 닫히지 않은 팝업 버튼 {remaining_after_close}개 존재")
         if remaining_after_close >= 5:
             log("팝업 구조 변경 가능성 있음")
+        # gather remaining popup ids for debugging
+        unresolved_ids = []
+        for frame in [page, *page.frames]:
+            buttons = frame.locator(selector_str)
+            for i in range(buttons.count()):
+                b = buttons.nth(i)
+                if b.is_visible():
+                    bid = b.get_attribute("id")
+                    if bid:
+                        unresolved_ids.append(bid)
+        if unresolved_ids:
+            log("닫히지 않은 팝업 ID: " + ", ".join(unresolved_ids))
+            try:
+                page.evaluate(f"alert('Unclosed popups: {','.join(unresolved_ids)}')")
+            except Exception:
+                log("alert 표시 실패")
 
     global _popup_failure_count
 
@@ -291,7 +310,7 @@ def process_popups_once(page: Page, *, force: bool = False) -> bool:
         log("✅ 팝업 탐색 이미 완료됨")
         return popups_handled()
 
-    closed, detected = close_popups(page, repeat=2, interval=500, max_wait=5000, force=True)
+    closed, detected = close_popups(page, repeat=4, interval=1000, max_wait=7000, force=True)
     _processed_popups = True
 
     remaining = detected - closed

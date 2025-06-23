@@ -117,7 +117,7 @@ def main() -> None:
                     page.evaluate("document.getElementById('nexacontainer').style.pointerEvents = ''")
                     log("✅ STZZ120 팝업 닫기 완료")
                 # 추가 팝업 존재 여부 재확인
-                close_popups(page, repeat=2, interval=500, force=True)
+                close_popups(page, repeat=4, interval=1000, force=True)
             except Exception as e:
                 log(f"❗ STZZ120 팝업 닫기 실패: {e}")
 
