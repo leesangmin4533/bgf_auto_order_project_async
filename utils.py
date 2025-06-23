@@ -11,6 +11,8 @@ from playwright.sync_api import Page
 EXPECTED_POPUPS = 2
 _closed_popups = 0
 _processed_popups = False
+# 팝업 닫기 실패가 연속 발생한 횟수
+_popup_failure_count = 0
 
 
 def log(msg: str) -> None:
@@ -114,6 +116,28 @@ def setup_dialog_handler(page, auto_accept: bool = True) -> None:
     page.on("dialog", _handle)
 
 
+def fallback_close_popups(page: Page) -> None:
+    """Alternative popup closing strategy using ESC key and element removal."""
+    log("⬇️ 팝업 강제 종료 전략 실행")
+    try:
+        for frame in [page, *page.frames]:
+            frame.hover("body")
+            frame.keyboard.press("Escape")
+            frame.wait_for_timeout(300)
+        divs = page.locator("div[style*='z-index']")
+        for i in range(divs.count()):
+            d = divs.nth(i)
+            if d.is_visible():
+                try:
+                    d.evaluate("e => e.remove()")
+                except Exception:
+                    pass
+    except Exception as e:  # pragma: no cover - logging only
+        log(f"강제 팝업 종료 실패: {e}")
+    finally:
+        log("⬆️ 팝업 강제 종료 전략 완료")
+
+
 def close_popups(
     page: Page,
     repeat: int = 3,
@@ -190,11 +214,31 @@ def close_popups(
                 btn = buttons.nth(i)
                 if btn.is_visible():
                     try:
+                        # temporarily disable pointer events to avoid overlay interference
+                        frame.evaluate("document.getElementById('nexacontainer').style.pointerEvents = 'none'")
                         btn.click(timeout=3000)
                         total_closed += 1
                         frame.wait_for_timeout(800)
                     except Exception as e:  # pragma: no cover - simple logging
                         log(f"팝업 닫기 실패: {e}")
+                        try:
+                            bbox = btn.bounding_box()
+                            if bbox:
+                                cx = bbox["x"] + bbox["width"] / 2
+                                cy = bbox["y"] + bbox["height"] / 2
+                                has_overlay = frame.evaluate(
+                                    "(x, y, el) => { const o = document.elementFromPoint(x, y); return o && o !== el && !o.contains(el); }",
+                                    cx,
+                                    cy,
+                                    btn,
+                                )
+                                if has_overlay:
+                                    log("요소 위에 오버레이가 존재하여 클릭이 차단됨")
+                        except Exception:
+                            pass
+                    finally:
+                        # restore pointer events
+                        frame.evaluate("document.getElementById('nexacontainer').style.pointerEvents = ''")
         attempts += 1
         elapsed = (time.time() - start) * 1000
         if (max_wait is not None and elapsed >= max_wait) or attempts >= repeat:
@@ -204,8 +248,22 @@ def close_popups(
     _closed_popups += total_closed
 
     log(f"총 {total_closed}개 팝업 닫기, 감지된 버튼 {total_detected}개")
-    if total_closed < total_detected:
-        log(f"⚠️ 닫히지 않은 팝업 버튼 {total_detected - total_closed}개 존재")
+    remaining_after_close = total_detected - total_closed
+    if remaining_after_close > 0:
+        log(f"⚠️ 닫히지 않은 팝업 버튼 {remaining_after_close}개 존재")
+        if remaining_after_close >= 5:
+            log("팝업 구조 변경 가능성 있음")
+
+    global _popup_failure_count
+
+    if remaining_after_close > 0:
+        _popup_failure_count += 1
+    else:
+        _popup_failure_count = 0
+
+    if _popup_failure_count >= 3:
+        fallback_close_popups(page)
+        _popup_failure_count = 0
 
     page.wait_for_timeout(final_wait)
     return total_closed, total_detected
