@@ -102,7 +102,7 @@ def close_popups(
     repeat: int = 3,
     interval: int = 1000,
     final_wait: int = 3000,
-    max_wait: int | None = None,
+    max_wait: int | None = 5000,
 ) -> int:
     """Detect and close popups on the page.
 
@@ -118,7 +118,7 @@ def close_popups(
         Extra wait time in milliseconds after handling popups. Default is 3000.
     max_wait : int | None, optional
         Maximum wait time in milliseconds for the overall routine. ``None`` means
-        no time limit.
+        no time limit. Default is ``5000``.
 
     Returns
     -------
