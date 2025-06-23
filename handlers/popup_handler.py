@@ -48,6 +48,13 @@ def close_detected_popups(page: Page, max_wait_sec: int = 30) -> bool:
     ]
     selectors = text_selectors + attr_selectors
 
+    # 디버깅을 위해 현재 페이지의 HTML을 저장
+    try:
+        with open("popup_debug.html", "w", encoding="utf-8") as f:
+            f.write(page.content())
+    except Exception as e:
+        utils.log(f"팝업 디버그 HTML 저장 실패: {e}")
+
     end = time.time() + max_wait_sec
     checks = 0
     loops = 0
