@@ -27,7 +27,7 @@ from utils import (
     set_ignore_popup_failure,
     log,
 )
-from popup_handler import close_detected_popups
+from handlers.popup_handler import close_detected_popups
 
 
 def main() -> None:
@@ -45,10 +45,6 @@ def main() -> None:
     user_pw = os.getenv("LOGIN_PW")
 
     wait_after_login = runtime_config.get("wait_after_login", 0)
-    popup_selectors = runtime_config.get(
-        "popup_selectors",
-        ["#popupClose", "img[src*='popup_close']"],
-    )
     ignore_popup_failure = runtime_config.get("ignore_popup_failure", False)
     set_ignore_popup_failure(ignore_popup_failure)
 

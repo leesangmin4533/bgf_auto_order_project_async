@@ -1,33 +1,57 @@
+from __future__ import annotations
 import time
 from playwright.sync_api import Page
 import utils
 
 
-def close_detected_popups(page: Page, max_wait_sec: int = 30) -> bool:
-    """Close all visible popups using reliable locator clicks.
+def handle_text_popups(page: Page) -> None:
+    """Click common text-based confirmation buttons in all frames."""
+    texts = ["확인", "확인하기"]
+    selectors = [f"div:has-text('{t}')" for t in texts] + [f"button:has-text('{t}')" for t in texts]
+    for frame in [page, *page.frames]:
+        if hasattr(frame, "is_detached") and frame.is_detached():
+            continue
+        for sel in selectors:
+            try:
+                loc = frame.locator(sel)
+            except Exception:
+                continue
+            for i in range(loc.count()):
+                btn = loc.nth(i)
+                if btn.is_visible():
+                    try:
+                        btn.click(timeout=0)
+                        frame.wait_for_timeout(300)
+                    except Exception:
+                        utils.log(f"텍스트 팝업 닫기 실패: {sel}")
 
-    This function repeatedly searches across all frames for visible buttons
-    matching common close patterns and clicks them until none remain or
-    ``max_wait_sec`` is exceeded.
-    """
-    selectors = [
-        "div:has-text('닫기')",
+
+def close_detected_popups(page: Page, max_wait_sec: int = 30) -> bool:
+    """Repeatedly search and close popups until none remain or timeout."""
+    text_selectors = [
+        "text=닫기",
         "button:has-text('닫기')",
         "a:has-text('닫기')",
         "[class*='btn_close']",
         "[id*='close']",
         "button:has-text('✕')",
         "text=✕",
-        # 추가: 텍스트 기반 div 버튼 처리
-        "div:has-text('확인')",
-        "div:has-text('확인하기')",
-        "div[class*='nexacontentsbox']:has-text('확인')",
-        "div[id*='btn_enter']:has-text('확인')",
     ]
+    attr_selectors = [
+        "button[id*='close']",
+        "button[class*='close']",
+        "a[class*='close']",
+        "div[class*='close']",
+        "span[class*='close']",
+        "[role='button'][id*='close']",
+        "[role='button'][class*='close']",
+    ]
+    selectors = text_selectors + attr_selectors
 
     end = time.time() + max_wait_sec
     checks = 0
-    while time.time() < end:
+    loops = 0
+    while time.time() < end or loops < 2:
         found = False
         targets = [page, *page.frames]
         for frame in targets:
@@ -36,7 +60,7 @@ def close_detected_popups(page: Page, max_wait_sec: int = 30) -> bool:
             for sel in selectors:
                 try:
                     locs = frame.locator(sel)
-                except Exception as e:  # pragma: no cover - logging only
+                except Exception as e:
                     utils.log(f"선택자 오류({sel}): {e}")
                     continue
                 for i in range(locs.count()):
@@ -46,10 +70,11 @@ def close_detected_popups(page: Page, max_wait_sec: int = 30) -> bool:
                             btn.click(timeout=0)
                             frame.wait_for_timeout(300)
                             found = True
-                        except Exception as e:  # pragma: no cover - logging only
+                        except Exception as e:
                             utils.log(f"닫기 버튼 클릭 실패: {e}")
+        handle_text_popups(page)
         checks += 1
-        # 확인 후 여전히 보이는 닫기 버튼이 없으면 종료
+        loops += 1
         visible = False
         for frame in targets:
             if hasattr(frame, "is_detached") and frame.is_detached():
