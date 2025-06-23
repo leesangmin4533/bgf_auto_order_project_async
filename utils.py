@@ -294,6 +294,37 @@ def close_popups(
     return closed, detected
 
 
+def remaining_popup_button_ids(page: Page) -> list[str]:
+    """Return IDs of still visible popup close buttons."""
+    text_selectors = [
+        "text=닫기",
+        "text=닫습니다",
+        "button:has-text('닫기')",
+        "[role='button']:has-text('닫기')",
+    ]
+    attr_selectors = [
+        "button[id*='close']",
+        "button[class*='close']",
+        "[role='button'][id*='close']",
+        "[role='button'][class*='close']",
+    ]
+    selectors = text_selectors + attr_selectors
+
+    ids: list[str] = []
+    for frame in [page, *page.frames]:
+        for sel in selectors:
+            loc = frame.locator(sel)
+            count = loc.count()
+            for i in range(count):
+                btn = loc.nth(i)
+                if not btn.is_visible():
+                    continue
+                btn_id = btn.get_attribute("id")
+                if btn_id:
+                    ids.append(btn_id)
+    return ids
+
+
 def process_popups_once(page: Page, *, force: bool = False) -> bool:
     """Run popup handling only once for the whole program.
 
@@ -317,10 +348,13 @@ def process_popups_once(page: Page, *, force: bool = False) -> bool:
         return popups_handled()
 
     closed, detected = close_popups(page, repeat=4, interval=1000, max_wait=7000, force=True)
+    remaining_ids = remaining_popup_button_ids(page)
     _processed_popups = True
 
     remaining = detected - closed
     log(f"닫히지 않은 팝업 수: {remaining}")
+    if remaining_ids:
+        log(f"미처리 팝업 ID 목록: {remaining_ids}")
     if remaining == 0:
         log("✅ 팝업 처리 완료")
     else:

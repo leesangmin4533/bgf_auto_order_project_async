@@ -55,7 +55,7 @@ def find_and_click(page, text: str) -> bool:
 
 def navigate_sales_ratio(page):
     if not popups_handled():
-        raise RuntimeError("팝업 처리가 완료되지 않았습니다")
+        log("⚠️ 팝업이 남아 있지만 메뉴 이동을 시도합니다")
     if not click_sales_analysis_tab(page):
         raise RuntimeError("Cannot find '매출분석' menu")
     page.wait_for_timeout(1000)
@@ -97,8 +97,7 @@ def run():
                 page.wait_for_timeout(wait_after_login * 1000)
 
             if not process_popups_once(page):
-                log("❌ 팝업을 모두 닫지 못했습니다")
-                return
+                log("⚠️ 팝업을 모두 닫지 못했으나 계속 진행합니다")
 
             navigate_sales_ratio(page)
             log("메뉴 이동 완료")
