@@ -7,12 +7,24 @@ import utils
 def handle_text_popups(page: Page) -> None:
     """Click common text-based confirmation buttons in all frames."""
     texts = ["확인", "확인하기"]
+    logout_keywords = ["종료 하시겠습니까", "로그아웃", "세션 종료"]
     selectors = (
         [f"div:has-text('{t}')" for t in texts]
         + [f"button:has-text('{t}')" for t in texts]
         + [f"div[class*='nexacontentsbox']:has-text('{t}')" for t in texts]
         + [f"div[id*='btn_enter']:has-text('{t}')" for t in texts]
     )
+
+    # 로그아웃 유도 팝업 감지 시 자동 클릭 중단
+    for frame in [page, *page.frames]:
+        for kw in logout_keywords:
+            try:
+                warning = frame.locator(f"div[class*='nexacontentsbox']:has-text('{kw}')")
+                if warning.count() > 0 and warning.first.is_visible():
+                    utils.log(f"⚠️ 로그아웃 관련 팝업 감지: {kw}")
+                    return
+            except Exception:
+                continue
 
     for _ in range(2):
         clicked = False
