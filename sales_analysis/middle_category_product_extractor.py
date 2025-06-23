@@ -1,7 +1,7 @@
 import json
 import datetime
 from pathlib import Path
-from playwright.sync_api import Page
+from playwright.sync_api import Page, expect
 from utils import popups_handled, log
 
 
@@ -29,7 +29,7 @@ def extract_middle_category_products(page: Page) -> Path:
         row = left_rows.nth(i)
         category = row.inner_text().strip()
         row.click()
-        page.wait_for_timeout(500)
+        expect(page.locator("#gdDetail div[class^='gridrow_']")).to_be_visible(timeout=3000)
 
         detail_rows = page.locator("#gdDetail div[class^='gridrow_']")
         products: list[dict] = []

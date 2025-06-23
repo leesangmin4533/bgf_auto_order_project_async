@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 from utils import (
     inject_init_cleanup_script,
     popups_handled,
@@ -59,7 +59,7 @@ def navigate_sales_ratio(page):
         raise RuntimeError("팝업 처리가 완료되지 않아 메뉴 이동을 중단합니다")
     if not click_sales_analysis_tab(page):
         raise RuntimeError("Cannot find '매출분석' menu")
-    page.wait_for_timeout(1000)
+    expect(page.locator("text=중분류별 매출 구성비")).to_be_visible(timeout=5000)
     if not find_and_click(page, "중분류별 매출 구성비"):
         raise RuntimeError("Cannot find '중분류별 매출 구성비' submenu")
     page.wait_for_load_state("networkidle")
