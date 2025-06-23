@@ -127,7 +127,15 @@ def setup_dialog_handler(page, auto_accept: bool = True) -> None:
     """
 
     def _handle(dialog) -> None:
+        logout_keywords = ["종료 하시겠습니까", "로그아웃", "세션 종료"]
         try:
+            if any(kw in dialog.message for kw in logout_keywords):
+                try:
+                    dialog.dismiss()
+                except Exception:
+                    pass
+                log(f"⚠️ 로그아웃 관련 다이얼로그 무시: {dialog.message}")
+                return
             if auto_accept:
                 dialog.accept()
             else:
