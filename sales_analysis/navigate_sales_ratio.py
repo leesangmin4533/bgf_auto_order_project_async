@@ -4,7 +4,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
-from utils import setup_dialog_handler, close_popups, popups_handled, log
+from utils import (
+    setup_dialog_handler,
+    close_popups,
+    popups_handled,
+    process_popups_once,
+    log,
+)
 
 
 def click_sales_analysis_tab(page) -> bool:
@@ -86,15 +92,9 @@ def run():
             if wait_after_login:
                 page.wait_for_timeout(wait_after_login * 1000)
 
-            closed = 0
-            for attempt in range(3):
-                log(f"팝업 탐색 {attempt + 1}회차")
-                closed += close_popups(page, repeat=2, interval=500, max_wait=3000, force=True)
-                page.wait_for_timeout(1000)
-            if popups_handled():
-                log("✅ 모든 팝업 처리 완료")
-            else:
-                log("⚠️ 일부 팝업이 닫히지 않았습니다")
+            if not process_popups_once(page):
+                log("❌ 팝업을 모두 닫지 못했습니다")
+                return
 
             navigate_sales_ratio(page)
             log("메뉴 이동 완료")

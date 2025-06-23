@@ -17,7 +17,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from utils import setup_dialog_handler, close_popups, popups_handled, log
+from utils import (
+    setup_dialog_handler,
+    close_popups,
+    popups_handled,
+    process_popups_once,
+    log,
+)
 
 
 def main() -> None:
@@ -94,16 +100,10 @@ def main() -> None:
             if wait_after_login:
                 page.wait_for_timeout(wait_after_login * 1000)
 
-            log("🟡 팝업 닫기 루프 시작")
-            closed = 0
-            for attempt in range(3):
-                log(f"  ➡️ 팝업 탐색 {attempt + 1}회차")
-                closed += close_popups(page, repeat=2, interval=500, max_wait=3000, force=True)
-                page.wait_for_timeout(1000)
-            if popups_handled():
-                log("✅ 팝업 처리 완료, 다음 단계로 이동 중...")
-            else:
-                log("⚠️ 일부 팝업이 닫히지 않았습니다")
+            log("🟡 팝업 처리 시작")
+            if not process_popups_once(page):
+                log("❌ 팝업을 모두 닫지 못해 종료합니다")
+                return
 
             log("🟡 STZZ120 팝업 닫기 시도")
             try:
