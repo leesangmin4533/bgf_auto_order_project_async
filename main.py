@@ -105,8 +105,7 @@ def main() -> None:
 
             log("🟡 팝업 처리 시작")
             if not process_popups_once(page):
-                log("❌ 팝업을 모두 닫지 못해 종료합니다")
-                return
+                log("⚠️ 팝업을 모두 닫지 못했으나 계속 진행합니다")
 
             log("🟡 STZZ120 팝업 닫기 시도")
             try:
