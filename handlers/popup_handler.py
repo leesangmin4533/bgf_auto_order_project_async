@@ -39,6 +39,40 @@ def login_page_visible(page: Page) -> bool:
     return False
 
 
+def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
+    """Register a dialog handler that auto processes common dialogs."""
+
+    def _handle(dialog) -> None:
+        logout_keywords = ["종료 하시겠습니까", "로그아웃", "세션 종료"]
+        try:
+            if any(kw in dialog.message for kw in logout_keywords):
+                try:
+                    dialog.dismiss()
+                except Exception:
+                    pass
+                utils.log(f"⚠️ 로그아웃 관련 다이얼로그 무시: {dialog.message}")
+                return
+            if "차단되었습니다" in dialog.message:
+                try:
+                    dialog.dismiss()
+                except Exception:
+                    pass
+                utils.log("❌ '추가 대화 차단' 다이얼로그 감지")
+                raise RuntimeError("Dialog blocked by browser")
+            if auto_accept:
+                dialog.accept()
+            else:
+                try:
+                    dialog.dismiss()
+                except Exception as e:
+                    utils.log(f"dialog.dismiss 오류: {e}")
+            utils.log(f"자동 다이얼로그 처리: {dialog.message}")
+        except Exception as e:
+            utils.log(f"다이얼로그 처리 오류: {e}")
+
+    page.on("dialog", _handle)
+
+
 def handle_text_popups(page: Page) -> None:
     """Click common text-based confirmation buttons in all frames."""
     texts = ["확인", "확인하기"]

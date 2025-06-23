@@ -5,12 +5,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 from utils import (
-    setup_dialog_handler,
-    close_popups,
-    popups_handled,
-    handle_popup,
     inject_init_cleanup_script,
+    popups_handled,
     log,
+)
+from handlers.popup_handler import (
+    setup_dialog_handler,
+    close_detected_popups,
 )
 
 
@@ -97,7 +98,7 @@ def run():
                 page.wait_for_timeout(wait_after_login * 1000)
 
             if not popups_handled():
-                if not handle_popup(page):
+                if not close_detected_popups(page):
                     log("❗ 팝업을 모두 닫지 못해 작업을 중단합니다")
                     return
 
@@ -108,7 +109,6 @@ def run():
             log(f"오류 발생: {e}")
         finally:
             try:
-                close_popups(page, force=True)
                 browser.close()
             finally:
                 log("정상 종료" if normal_exit else "비정상 종료")
