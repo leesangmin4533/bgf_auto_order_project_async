@@ -18,6 +18,11 @@ def close_detected_popups(page: Page, max_wait_sec: int = 30) -> bool:
         "[id*='close']",
         "button:has-text('✕')",
         "text=✕",
+        # 추가: 텍스트 기반 div 버튼 처리
+        "div:has-text('확인')",
+        "div:has-text('확인하기')",
+        "div[class*='nexacontentsbox']:has-text('확인')",
+        "div[id*='btn_enter']:has-text('확인')",
     ]
 
     end = time.time() + max_wait_sec
