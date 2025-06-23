@@ -3,6 +3,41 @@ import time
 from playwright.sync_api import Page
 import utils
 
+# 메시지 차단 감지용 선택자 목록
+BLOCK_SELECTORS = [
+    "text=이 페이지가 추가적인 대화를 생성하지 않도록 차단되었습니다",
+    "div:has-text('차단되었습니다')",
+]
+
+
+def dialog_blocked(page: Page) -> bool:
+    """Return True if Chrome shows the 'dialog blocked' message."""
+    for frame in [page, *page.frames]:
+        for sel in BLOCK_SELECTORS:
+            try:
+                loc = frame.locator(sel)
+                if loc.count() > 0 and loc.first.is_visible():
+                    return True
+            except Exception:
+                continue
+    return False
+
+
+def login_page_visible(page: Page) -> bool:
+    """Check if login form fields are visible (session expired)."""
+    selectors = [
+        "[id='mainframe.HFrameSet00.LoginFrame.form.div_login.form.edt_id:input']",
+        "[id='mainframe.HFrameSet00.LoginFrame.form.div_login.form.edt_pw:input']",
+    ]
+    for sel in selectors:
+        try:
+            loc = page.locator(sel)
+            if loc.count() > 0 and loc.first.is_visible():
+                return True
+        except Exception:
+            continue
+    return False
+
 
 def handle_text_popups(page: Page) -> None:
     """Click common text-based confirmation buttons in all frames."""
@@ -90,7 +125,13 @@ def close_detected_popups(page: Page, max_wait_sec: int = 30) -> bool:
     end = time.time() + max_wait_sec
     checks = 0
     loops = 0
-    while time.time() < end or loops < 2:
+    while (time.time() < end or loops < 2) and loops < 10:
+        if dialog_blocked(page):
+            utils.log("❌ 브라우저에서 추가 대화 차단 메시지 감지")
+            return False
+        if login_page_visible(page):
+            utils.log("❌ 로그인 페이지로 돌아감 - 세션 만료 추정")
+            return False
         found = False
         targets = [page, *page.frames]
         for frame in targets:

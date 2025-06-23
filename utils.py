@@ -136,6 +136,13 @@ def setup_dialog_handler(page, auto_accept: bool = True) -> None:
                     pass
                 log(f"⚠️ 로그아웃 관련 다이얼로그 무시: {dialog.message}")
                 return
+            if "차단되었습니다" in dialog.message:
+                try:
+                    dialog.dismiss()
+                except Exception:
+                    pass
+                log("❌ '추가 대화 차단' 다이얼로그 감지")
+                raise RuntimeError("Dialog blocked by browser")
             if auto_accept:
                 dialog.accept()
             else:
@@ -283,7 +290,7 @@ def close_popups(
     closed = 0
     detected = 0
 
-    loops = max(2, repeat)
+    loops = min(max(2, repeat), 10)
     start = time.time() * 1000
     for _ in range(loops):
         loop_closed = 0
