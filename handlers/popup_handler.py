@@ -82,6 +82,7 @@ def handle_text_popups(page: Page) -> None:
         + [f"button:has-text('{t}')" for t in texts]
         + [f"div[class*='nexacontentsbox']:has-text('{t}')" for t in texts]
         + [f"div[id*='btn_enter']:has-text('{t}')" for t in texts]
+        + ["div[class*='nexacontentsbox']:has-text('확인하기')", "div[id*='btn_enter']:has-text('확인')"]
     )
 
     # 로그아웃 유도 팝업 감지 시 자동 클릭 중단
@@ -112,6 +113,11 @@ def handle_text_popups(page: Page) -> None:
                     btn = loc.nth(i)
                     try:
                         text = btn.inner_text()
+                        btn_id = btn.get_attribute("id") or ""
+                        btn_class = btn.get_attribute("class") or ""
+                        utils.log(
+                            f"팝업 버튼 감지 → text:'{text}', id:'{btn_id}', class:'{btn_class}', sel:'{sel}'"
+                        )
                     except Exception:
                         text = ""
                     if btn.is_visible() and btn.is_enabled():
