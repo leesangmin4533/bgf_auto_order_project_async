@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
-from utils import setup_dialog_handler, close_popups
+from utils import setup_dialog_handler, close_popups, popups_handled
 
 
 def click_sales_analysis_tab(page) -> bool:
@@ -86,12 +86,16 @@ def run():
             if wait_after_login:
                 page.wait_for_timeout(wait_after_login * 1000)
 
-            for sel in cfg.get("popup_selectors", []):
-                if page.locator(sel).count() > 0:
-                    page.locator(sel).click()
+            closed = 0
+            for _ in range(3):
+                closed += close_popups(page, repeat=1, interval=500, max_wait=3000)
+                if popups_handled():
                     break
-
-            close_popups(page, repeat=3, interval=1000, max_wait=5000)
+                page.wait_for_timeout(1000)
+            if popups_handled():
+                print("✅ 모든 팝업 처리 완료")
+            else:
+                print("⚠️ 일부 팝업이 닫히지 않았습니다")
 
             navigate_sales_ratio(page)
             print("메뉴 이동 완료")
@@ -100,7 +104,7 @@ def run():
             print(f"오류 발생: {e}")
         finally:
             try:
-                close_popups(page)
+                close_popups(page, force=True)
                 browser.close()
             finally:
                 print("정상 종료" if normal_exit else "비정상 종료")

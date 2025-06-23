@@ -6,6 +6,15 @@ import pyautogui
 import pygetwindow as gw
 from playwright.sync_api import Page
 
+# 팝업 처리 상태를 추적하기 위한 전역 변수
+EXPECTED_POPUPS = 2
+_closed_popups = 0
+
+
+def popups_handled() -> bool:
+    """Return ``True`` if expected popups were already closed."""
+    return _closed_popups >= EXPECTED_POPUPS
+
 # 공통 설정 및 유틸리티 함수 모음
 TESSERACT_CMD = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
 CHROME_PATH = r"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
@@ -103,6 +112,8 @@ def close_popups(
     interval: int = 1000,
     final_wait: int = 3000,
     max_wait: int | None = 5000,
+    *,
+    force: bool = False,
 ) -> int:
     """Detect and close popups on the page.
 
@@ -119,12 +130,21 @@ def close_popups(
     max_wait : int | None, optional
         Maximum wait time in milliseconds for the overall routine. ``None`` means
         no time limit. Default is ``5000``.
+    force : bool, optional
+        If ``True``, run the popup routine regardless of current global state.
+        Default is ``False``.
 
     Returns
     -------
     int
-        Total number of popups closed.
+        Total number of popups closed during this call.
     """
+
+    global _closed_popups
+
+    if _closed_popups >= EXPECTED_POPUPS and not force:
+        print("✅ 모든 팝업 이미 처리됨, 추가 닫기 생략")
+        return 0
 
     selectors = [
         "div.nexacontentsbox:has-text('닫기')",
@@ -161,7 +181,7 @@ def close_popups(
                 btn = buttons.nth(i)
                 if btn.is_visible():
                     try:
-                        btn.click()
+                        btn.click(timeout=3000)
                         total_closed += 1
                         frame.wait_for_timeout(800)
                     except Exception as e:  # pragma: no cover - simple logging
@@ -171,6 +191,8 @@ def close_popups(
         if (max_wait is not None and elapsed >= max_wait) or attempts >= repeat:
             break
         page.wait_for_timeout(interval)
+
+    _closed_popups += total_closed
 
     print(f"총 {total_closed}개 팝업 닫기, 감지된 버튼 {total_detected}개")
     if total_closed < total_detected:
