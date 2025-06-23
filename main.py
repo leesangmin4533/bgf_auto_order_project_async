@@ -95,10 +95,13 @@ def main() -> None:
             print("팝업 감지 여부")
             clicked = False
             for sel in popup_selectors:
-                if page.locator(sel).count() > 0:
-                    page.locator(sel).click()
-                    clicked = True
-                    break
+                loc = page.locator(sel)
+                for i in range(loc.count()):
+                    btn = loc.nth(i)
+                    if btn.is_visible():
+                        btn.click()
+                        clicked = True
+                        page.wait_for_timeout(500)
             if clicked:
                 print("닫기 버튼 클릭 완료")
             else:
