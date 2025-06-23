@@ -112,10 +112,14 @@ def main() -> None:
             log("🟡 팝업 처리 시작")
             attempts = 0
             while attempts < 2 or (not popups_handled() and attempts < 3):
-                process_popups_once(page, force=True)
+                try:
+                    process_popups_once(page, force=True)
+                except Exception as e:
+                    log(f"팝업 처리 중 오류: {e}")
                 attempts += 1
             if not popups_handled():
-                log("⚠️ 팝업을 모두 닫지 못했으나 계속 진행합니다")
+                log("❗ 팝업을 모두 닫지 못해 자동화를 중단합니다")
+                return
             else:
                 log("✅ 팝업 처리 완료")
 
@@ -123,11 +127,15 @@ def main() -> None:
             try:
                 close_stzz120_popup(page)
                 # 추가 팝업 존재 여부 재확인
-                close_popups(page, repeat=4, interval=1000, force=True)
+                try:
+                    close_popups(page, repeat=4, interval=1000, force=True)
+                except Exception as e:
+                    log(f"추가 팝업 닫기 중 오류: {e}")
             except Exception as e:
                 log(f"❗ STZZ120 팝업 닫기 실패: {e}")
             if not popups_handled():
-                log("⚠️ 일부 팝업이 남아 있지만 계속 진행합니다")
+                log("❗ 팝업이 남아 있어 자동화를 중단합니다")
+                return
 
             # 월요일에만 매출 분석 기능 실행
             if datetime.datetime.today().weekday() == 0:
