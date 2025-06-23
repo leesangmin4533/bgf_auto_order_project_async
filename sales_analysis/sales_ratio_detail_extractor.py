@@ -1,7 +1,7 @@
 import datetime
 from pathlib import Path
 from playwright.sync_api import Page
-from utils import popups_handled
+from utils import popups_handled, log
 
 
 def set_current_month_range(page: Page) -> tuple[str, str]:
@@ -49,7 +49,10 @@ def extract_sales_ratio_details(page: Page) -> Path:
     if not popups_handled():
         raise RuntimeError("팝업 처리가 완료되지 않았습니다.")
 
+    log("🟡 매출상세 추출을 위한 날짜 범위 설정")
     start_str, end_str = set_current_month_range(page)
+
+    log("🟡 중분류 테이블 파싱 시작")
 
     left_rows = page.locator("table tr")
     row_count = left_rows.count()
@@ -70,4 +73,5 @@ def extract_sales_ratio_details(page: Page) -> Path:
             for line in texts:
                 f.write(line + "\n")
             f.write("\n")
+    log(f"✅ 매출상세 데이터 저장 완료 → {out_path}")
     return out_path

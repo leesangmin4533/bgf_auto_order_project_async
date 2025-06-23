@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
-from utils import setup_dialog_handler, close_popups, popups_handled
+from utils import setup_dialog_handler, close_popups, popups_handled, log
 
 
 def click_sales_analysis_tab(page) -> bool:
@@ -13,10 +13,10 @@ def click_sales_analysis_tab(page) -> bool:
     try:
         element = page.wait_for_selector(selector, timeout=5000)
         element.click()
-        print("'매출분석' 탭 클릭 성공")
+        log("'매출분석' 탭 클릭 성공")
         return True
     except Exception as e:
-        print(f"'매출분석' 탭 클릭 실패: {e}")
+        log(f"'매출분석' 탭 클릭 실패: {e}")
         return False
 
 load_dotenv()
@@ -63,7 +63,7 @@ def run():
     user_pw = os.getenv("LOGIN_PW")
 
     if not user_id or not user_pw:
-        print("LOGIN_ID 또는 LOGIN_PW가 설정되지 않았습니다.")
+        log("LOGIN_ID 또는 LOGIN_PW가 설정되지 않았습니다.")
         return
 
     url = "https://store.bgfretail.com/websrc/deploy/index.html"
@@ -87,27 +87,26 @@ def run():
                 page.wait_for_timeout(wait_after_login * 1000)
 
             closed = 0
-            for _ in range(3):
-                closed += close_popups(page, repeat=1, interval=500, max_wait=3000)
-                if popups_handled():
-                    break
+            for attempt in range(3):
+                log(f"팝업 탐색 {attempt + 1}회차")
+                closed += close_popups(page, repeat=2, interval=500, max_wait=3000, force=True)
                 page.wait_for_timeout(1000)
             if popups_handled():
-                print("✅ 모든 팝업 처리 완료")
+                log("✅ 모든 팝업 처리 완료")
             else:
-                print("⚠️ 일부 팝업이 닫히지 않았습니다")
+                log("⚠️ 일부 팝업이 닫히지 않았습니다")
 
             navigate_sales_ratio(page)
-            print("메뉴 이동 완료")
+            log("메뉴 이동 완료")
             normal_exit = True
         except Exception as e:
-            print(f"오류 발생: {e}")
+            log(f"오류 발생: {e}")
         finally:
             try:
                 close_popups(page, force=True)
                 browser.close()
             finally:
-                print("정상 종료" if normal_exit else "비정상 종료")
+                log("정상 종료" if normal_exit else "비정상 종료")
 
 
 if __name__ == "__main__":

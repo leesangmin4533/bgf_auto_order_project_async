@@ -2,6 +2,7 @@ import os
 import json
 import time
 import subprocess
+import datetime
 import pyautogui
 import pygetwindow as gw
 from playwright.sync_api import Page
@@ -9,6 +10,12 @@ from playwright.sync_api import Page
 # 팝업 처리 상태를 추적하기 위한 전역 변수
 EXPECTED_POPUPS = 2
 _closed_popups = 0
+
+
+def log(msg: str) -> None:
+    """Print a log message with current time."""
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {msg}")
 
 
 def popups_handled() -> bool:
@@ -143,7 +150,7 @@ def close_popups(
     global _closed_popups
 
     if _closed_popups >= EXPECTED_POPUPS and not force:
-        print("✅ 모든 팝업 이미 처리됨, 추가 닫기 생략")
+        log("✅ 모든 팝업 이미 처리됨, 추가 닫기 생략")
         return 0
 
     selectors = [
@@ -185,7 +192,7 @@ def close_popups(
                         total_closed += 1
                         frame.wait_for_timeout(800)
                     except Exception as e:  # pragma: no cover - simple logging
-                        print(f"팝업 닫기 실패: {e}")
+                        log(f"팝업 닫기 실패: {e}")
         attempts += 1
         elapsed = (time.time() - start) * 1000
         if (max_wait is not None and elapsed >= max_wait) or attempts >= repeat:
@@ -194,9 +201,9 @@ def close_popups(
 
     _closed_popups += total_closed
 
-    print(f"총 {total_closed}개 팝업 닫기, 감지된 버튼 {total_detected}개")
+    log(f"총 {total_closed}개 팝업 닫기, 감지된 버튼 {total_detected}개")
     if total_closed < total_detected:
-        print(f"⚠️ 닫히지 않은 팝업 버튼 {total_detected - total_closed}개 존재")
+        log(f"⚠️ 닫히지 않은 팝업 버튼 {total_detected - total_closed}개 존재")
 
     page.wait_for_timeout(final_wait)
     return total_closed
