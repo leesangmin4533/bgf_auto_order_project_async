@@ -49,6 +49,7 @@ def extract_sales_detail(page: Page) -> Path:
     out_path = output_dir / file_name
 
     log("🟡 중분류별 매출 상세 추출 시작")
+    total_details = 0
     with out_path.open("w", encoding="utf-8") as f:
         for i in range(row_count):
             row = left_rows.nth(i)
@@ -56,8 +57,14 @@ def extract_sales_detail(page: Page) -> Path:
             row.click()
             page.wait_for_timeout(500)
 
+            container = page.locator("div[id*='gdDetail']")
             details = page.locator("#gdDetail div[class^='gridrow_']")
+            if container.count() == 0 or details.count() == 0:
+                log("❌ 상세 테이블 항목 없음")
+                continue
+
             detail_count = details.count()
+            total_details += detail_count
             f.write(f"[중분류: {code}]\n")
             for j in range(detail_count):
                 d_row = details.nth(j)
@@ -66,5 +73,6 @@ def extract_sales_detail(page: Page) -> Path:
                     f.write(text + "\n")
             f.write("\n")
 
-    log(f"✅ 매출상세 데이터 저장 → {out_path}")
+    if total_details > 0:
+        log(f"✅ 매출상세 데이터 저장 → {out_path}")
     return out_path

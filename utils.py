@@ -10,6 +10,7 @@ from playwright.sync_api import Page
 # 팝업 처리 상태를 추적하기 위한 전역 변수
 EXPECTED_POPUPS = 2
 _closed_popups = 0
+_processed_popups = False
 
 
 def log(msg: str) -> None:
@@ -121,7 +122,7 @@ def close_popups(
     max_wait: int | None = 5000,
     *,
     force: bool = False,
-) -> int:
+) -> tuple[int, int]:
     """Detect and close popups on the page.
 
     Parameters
@@ -143,15 +144,16 @@ def close_popups(
 
     Returns
     -------
-    int
-        Total number of popups closed during this call.
+    tuple[int, int]
+        A tuple of ``(closed_count, detected_count)`` representing how many
+        popups were closed and how many close buttons were detected.
     """
 
     global _closed_popups
 
     if _closed_popups >= EXPECTED_POPUPS and not force:
         log("✅ 모든 팝업 이미 처리됨, 추가 닫기 생략")
-        return 0
+        return 0, 0
 
     selectors = [
         "div.nexacontentsbox:has-text('닫기')",
@@ -206,4 +208,39 @@ def close_popups(
         log(f"⚠️ 닫히지 않은 팝업 버튼 {total_detected - total_closed}개 존재")
 
     page.wait_for_timeout(final_wait)
-    return total_closed
+    return total_closed, total_detected
+
+
+def process_popups_once(page: Page, *, force: bool = False) -> bool:
+    """Run popup handling only once for the whole program.
+
+    Parameters
+    ----------
+    page : Page
+        Playwright page instance.
+    force : bool, optional
+        If ``True``, run popup processing even if it already ran once.
+
+    Returns
+    -------
+    bool
+        ``True`` if all detected popups were closed.
+    """
+
+    global _processed_popups
+
+    if _processed_popups and not force:
+        log("✅ 팝업 탐색 이미 완료됨")
+        return popups_handled()
+
+    closed, detected = close_popups(page, repeat=2, interval=500, max_wait=5000, force=True)
+    _processed_popups = True
+
+    remaining = detected - closed
+    log(f"닫히지 않은 팝업 수: {remaining}")
+    if remaining == 0:
+        log("✅ 팝업 처리 완료")
+    else:
+        log("⚠️ 일부 팝업이 닫히지 않았습니다")
+
+    return remaining == 0

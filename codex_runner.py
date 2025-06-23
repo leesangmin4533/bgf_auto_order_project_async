@@ -1,7 +1,12 @@
 import json
 import os
 from playwright.sync_api import sync_playwright
-from utils import setup_dialog_handler, close_popups, popups_handled
+from utils import (
+    setup_dialog_handler,
+    close_popups,
+    popups_handled,
+    process_popups_once,
+)
 from dotenv import load_dotenv
 
 # Load environment variables from .env
@@ -52,16 +57,11 @@ def run() -> None:
             if wait_after_login:
                 page.wait_for_timeout(wait_after_login * 1000)
 
-            closed = 0
-            for _ in range(3):
-                closed += close_popups(page, repeat=1, interval=500, max_wait=3000)
-                if popups_handled():
-                    break
-                page.wait_for_timeout(1000)
-            if popups_handled():
-                print("✅ 모든 팝업 처리 완료")
-            else:
+            if not process_popups_once(page):
                 print("⚠️ 일부 팝업이 닫히지 않았습니다")
+                return
+            else:
+                print("✅ 모든 팝업 처리 완료")
 
             # Additional popup handling for STZZ120 page
             try:
