@@ -23,12 +23,11 @@ from playwright.sync_api import sync_playwright
 from utils import (
     setup_dialog_handler,
     close_popups,
-    popups_handled,
-    handle_popup,
     inject_init_cleanup_script,
     set_ignore_popup_failure,
     log,
 )
+from popup_handler import close_detected_popups
 
 
 def main() -> None:
@@ -109,10 +108,9 @@ def main() -> None:
                 page.wait_for_timeout(wait_after_login * 1000)
 
             log("🟡 팝업 처리 시작")
-            if not popups_handled():
-                if not handle_popup(page):
-                    log("❗ 팝업을 모두 닫지 못해 자동화를 중단합니다")
-                    return
+            if not close_detected_popups(page):
+                log("❗ 팝업을 모두 닫지 못해 자동화를 중단합니다")
+                return
             log("✅ 팝업 처리 완료")
 
             # 월요일에만 매출 분석 기능 실행
