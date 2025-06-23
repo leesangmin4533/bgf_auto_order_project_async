@@ -135,10 +135,12 @@ def fallback_close_popups(page: Page) -> None:
     """Alternative popup closing strategy using ESC key and element removal."""
     log("⬇️ 팝업 강제 종료 전략 실행")
     try:
-        for frame in [page, *page.frames]:
-            frame.hover("body")
-            frame.keyboard.press("Escape")
-            frame.wait_for_timeout(300)
+        try:
+            page.hover("body")
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(300)
+        except Exception as e:
+            log(f"ESC 키 전송 실패: {e}")
         divs = page.locator("div[style*='z-index']")
         for i in range(divs.count()):
             d = divs.nth(i)
