@@ -5,7 +5,7 @@ from utils import (
     setup_dialog_handler,
     close_popups,
     popups_handled,
-    process_popups_once,
+    handle_popup,
     inject_init_cleanup_script,
 )
 from dotenv import load_dotenv
@@ -59,8 +59,11 @@ def run() -> None:
             if wait_after_login:
                 page.wait_for_timeout(wait_after_login * 1000)
 
-            if not process_popups_once(page):
-                print("⚠️ 일부 팝업이 닫히지 않았으나 계속 진행합니다")
+            if not popups_handled():
+                if not handle_popup(page):
+                    print("⚠️ 일부 팝업이 닫히지 않았으나 계속 진행합니다")
+                else:
+                    print("✅ 모든 팝업 처리 완료")
             else:
                 print("✅ 모든 팝업 처리 완료")
 

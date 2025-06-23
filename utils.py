@@ -11,6 +11,7 @@ from playwright.sync_api import Page
 EXPECTED_POPUPS = 2
 _closed_popups = 0
 _processed_popups = False
+popup_handled = False
 # 팝업 닫기 실패가 연속 발생한 횟수
 _popup_failure_count = 0
 _ignore_popup_failure = False
@@ -29,8 +30,8 @@ def log(msg: str) -> None:
 
 
 def popups_handled() -> bool:
-    """Return ``True`` if expected popups were already closed or ignored."""
-    return _ignore_popup_failure or _closed_popups >= EXPECTED_POPUPS
+    """Return ``True`` if popup handling has succeeded."""
+    return popup_handled or _ignore_popup_failure or _closed_popups >= EXPECTED_POPUPS
 
 
 def inject_init_cleanup_script(page: Page) -> None:
@@ -377,6 +378,20 @@ def remaining_popup_button_ids(page: Page) -> list[str]:
     return ids
 
 
+def handle_popup(page: Page) -> bool:
+    """Close all popups once and set ``popup_handled`` status."""
+
+    global popup_handled
+    try:
+        close_popups(page, repeat=4, interval=1000, force=True)
+        close_stzz120_popup(page)
+        close_popups(page, repeat=2, interval=1000, force=True)
+        popup_handled = not remaining_popup_button_ids(page)
+    except Exception as e:  # pragma: no cover - logging only
+        log(f"팝업 처리 오류: {e}")
+        popup_handled = False
+    return popup_handled
+
 def process_popups_once(page: Page, *, force: bool = False) -> bool:
     """Run popup handling only once for the whole program.
 
@@ -399,17 +414,6 @@ def process_popups_once(page: Page, *, force: bool = False) -> bool:
         log("✅ 팝업 탐색 이미 완료됨")
         return popups_handled()
 
-    closed, detected = close_popups(page, repeat=4, interval=1000, max_wait=7000, force=True)
-    remaining_ids = remaining_popup_button_ids(page)
+    result = handle_popup(page)
     _processed_popups = True
-
-    remaining = detected - closed
-    log(f"닫히지 않은 팝업 수: {remaining}")
-    if remaining_ids:
-        log(f"미처리 팝업 ID 목록: {remaining_ids}")
-    if remaining == 0:
-        log("✅ 팝업 처리 완료")
-    else:
-        log("⚠️ 일부 팝업이 닫히지 않았습니다")
-
-    return remaining == 0
+    return result
