@@ -29,7 +29,7 @@ def set_month_date_range(page: Page) -> tuple[str, str]:
 def extract_sales_detail(page: Page) -> Path:
     """Extract daily sales details for each middle category."""
     if not popups_handled():
-        log("⚠️ 팝업이 남아 있지만 데이터 추출을 시도합니다")
+        raise RuntimeError("팝업 처리가 완료되지 않아 데이터 추출을 중단합니다")
 
     log("🟡 날짜 설정 시작")
     start_str, end_str = set_month_date_range(page)
