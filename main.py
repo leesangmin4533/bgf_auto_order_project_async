@@ -16,7 +16,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from utils import setup_dialog_handler, close_popups
+from utils import setup_dialog_handler, close_popups, popups_handled
 
 
 def main() -> None:
@@ -91,24 +91,19 @@ def main() -> None:
             if wait_after_login:
                 page.wait_for_timeout(wait_after_login * 1000)
 
-            # ④ 로그인 후 나타나는 팝업 닫기
-            print("팝업 감지 여부")
-            clicked = False
-            for sel in popup_selectors:
-                loc = page.locator(sel)
-                for i in range(loc.count()):
-                    btn = loc.nth(i)
-                    if btn.is_visible():
-                        btn.click()
-                        clicked = True
-                        page.wait_for_timeout(500)
-            if clicked:
-                print("닫기 버튼 클릭 완료")
+            # ④ 로그인 후 나타나는 팝업을 빠르게 닫기
+            closed = 0
+            for _ in range(3):
+                closed += close_popups(page, repeat=1, interval=500, max_wait=3000)
+                if popups_handled():
+                    break
+                page.wait_for_timeout(1000)
+            if popups_handled():
+                print("✅ 모든 팝업 처리 완료")
             else:
-                print("버튼 없음")
+                print("⚠️ 일부 팝업이 닫히지 않았습니다")
 
-            # 추가 안전 장치로 팝업을 반복적으로 닫음
-            close_popups(page, repeat=3, interval=1000, max_wait=5000)
+            # STZZ120 페이지 팝업 닫기 처리
 
             # STZZ120 페이지 팝업 닫기 처리
             try:
@@ -117,7 +112,7 @@ def main() -> None:
                 )
                 close_btn = page.locator(close_selector)
                 if close_btn.count() > 0 and close_btn.is_visible():
-                    close_btn.click()
+                    close_btn.click(timeout=3000)
             except Exception as e:
                 print(f"STZZ120 팝업 닫기 실패: {e}")
 
@@ -136,7 +131,7 @@ def main() -> None:
             print(f"오류 발생: {e}")
         finally:
             try:
-                close_popups(page)
+                close_popups(page, force=True)
                 browser.close()
             finally:
                 print("정상 종료" if normal_exit else "비정상 종료")
