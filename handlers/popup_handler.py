@@ -7,23 +7,43 @@ import utils
 def handle_text_popups(page: Page) -> None:
     """Click common text-based confirmation buttons in all frames."""
     texts = ["확인", "확인하기"]
-    selectors = [f"div:has-text('{t}')" for t in texts] + [f"button:has-text('{t}')" for t in texts]
-    for frame in [page, *page.frames]:
-        if hasattr(frame, "is_detached") and frame.is_detached():
-            continue
-        for sel in selectors:
-            try:
-                loc = frame.locator(sel)
-            except Exception:
+    selectors = (
+        [f"div:has-text('{t}')" for t in texts]
+        + [f"button:has-text('{t}')" for t in texts]
+        + [f"div[class*='nexacontentsbox']:has-text('{t}')" for t in texts]
+        + [f"div[id*='btn_enter']:has-text('{t}')" for t in texts]
+    )
+
+    for _ in range(2):
+        clicked = False
+        for frame in [page, *page.frames]:
+            if hasattr(frame, "is_detached") and frame.is_detached():
                 continue
-            for i in range(loc.count()):
-                btn = loc.nth(i)
-                if btn.is_visible():
+            for sel in selectors:
+                try:
+                    loc = frame.locator(sel)
+                except Exception:
+                    continue
+                count = loc.count()
+                if count == 0:
+                    print("감지된 수:", count)
+                for i in range(count):
+                    btn = loc.nth(i)
                     try:
-                        btn.click(timeout=0)
-                        frame.wait_for_timeout(300)
+                        text = btn.inner_text()
                     except Exception:
-                        utils.log(f"텍스트 팝업 닫기 실패: {sel}")
+                        text = ""
+                    if btn.is_visible() and btn.is_enabled():
+                        try:
+                            btn.click(timeout=0, force=True)
+                            frame.wait_for_timeout(300)
+                            clicked = True
+                        except Exception:
+                            utils.log(f"텍스트 팝업 닫기 실패: {sel}")
+                    else:
+                        print("텍스트:", text)
+        if not clicked:
+            break
 
 
 def close_detected_popups(page: Page, max_wait_sec: int = 30) -> bool:
