@@ -1,7 +1,31 @@
 from __future__ import annotations
 import time
+from typing import Iterable
 from playwright.sync_api import Page, expect
 import utils
+
+# 구조화된 팝업 정의 목록
+POPUP_DEFINITIONS = [
+    {
+        "name": "Generic Popup",
+        "container_selector": "div[style*='z-index']",
+        "close_selectors": [
+            "text=닫기",
+            "button:has-text('닫기')",
+            "a:has-text('닫기')",
+            "[class*='close']",
+            "button:has-text('✕')",
+            "text=✕",
+        ],
+    },
+    {
+        "name": "STZZ120",
+        "container_selector": "div[id*='STZZ120_P0']",
+        "close_selectors": [
+            "#mainframe\\.HFrameSet00\\.VFrameSet00\\.FrameSet\\.WorkFrame\\.STZZ120_P0\\.form\\.btn_close:icontext",
+        ],
+    },
+]
 
 # 메시지 차단 감지용 선택자 목록
 BLOCK_SELECTORS = [
@@ -37,6 +61,86 @@ def login_page_visible(page: Page) -> bool:
         except Exception:
             continue
     return False
+
+
+def _locators_iter(frame: Page, selectors: Iterable[str]):
+    """Yield locators for each selector, ignoring errors."""
+    for sel in selectors:
+        try:
+            loc = frame.locator(sel)
+        except Exception:
+            continue
+        if loc.count() > 0:
+            yield sel, loc
+
+
+def close_all_popups(page: Page, *, max_loops: int = 5, wait_ms: int = 500) -> bool:
+    """Close all popups defined in ``POPUP_DEFINITIONS`` until none remain."""
+
+    loops = 0
+    closed_any = False
+    while loops < max_loops:
+        loops += 1
+        found = False
+        for definition in POPUP_DEFINITIONS:
+            name = definition["name"]
+            container_sel = definition["container_selector"]
+            close_sels = definition["close_selectors"]
+            for frame in [page, *page.frames]:
+                try:
+                    containers = frame.locator(container_sel)
+                except Exception:
+                    continue
+                for i in range(containers.count()):
+                    cont = containers.nth(i)
+                    if not cont.is_visible():
+                        continue
+                    utils.log(f"팝업 감지 → {name}")
+                    clicked = False
+                    for sel in close_sels:
+                        loc = cont.locator(sel)
+                        if loc.count() == 0:
+                            loc = frame.locator(sel)
+                        for _, btn in ((idx, loc.nth(idx)) for idx in range(loc.count())):
+                            if btn.is_visible():
+                                try:
+                                    btn.click(timeout=0)
+                                    utils.log(f"'{name}' 팝업 닫기: {sel}")
+                                    closed_any = True
+                                    clicked = True
+                                    break
+                                except Exception as e:
+                                    utils.log(f"'{name}' 팝업 닫기 실패({sel}): {e}")
+                        if clicked:
+                            break
+                    if clicked:
+                        found = True
+                        break
+                if found:
+                    break
+            if found:
+                break
+        if not found:
+            visible = False
+            for definition in POPUP_DEFINITIONS:
+                sel = definition["container_selector"]
+                for frame in [page, *page.frames]:
+                    try:
+                        loc = frame.locator(sel)
+                    except Exception:
+                        continue
+                    for j in range(loc.count()):
+                        if loc.nth(j).is_visible():
+                            visible = True
+                            break
+                    if visible:
+                        break
+                if visible:
+                    break
+            if not visible:
+                break
+        page.wait_for_timeout(wait_ms)
+    return closed_any
 
 
 def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
@@ -181,7 +285,7 @@ def close_detected_popups(
         if login_page_visible(page):
             utils.log("❌ 로그인 페이지로 돌아감 - 세션 만료 추정")
             return False
-        found = False
+        found = close_all_popups(page)
         targets = [page, *page.frames]
         for frame in targets:
             if hasattr(frame, "is_detached") and frame.is_detached():
