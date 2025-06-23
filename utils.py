@@ -130,7 +130,10 @@ def setup_dialog_handler(page, auto_accept: bool = True) -> None:
             if auto_accept:
                 dialog.accept()
             else:
-                dialog.dismiss()
+                try:
+                    dialog.dismiss()
+                except Exception as e:
+                    print(f"dialog.dismiss 오류: {e}")
             print(f"자동 다이얼로그 처리: {dialog.message}")
         except Exception as e:
             print(f"다이얼로그 처리 오류: {e}")
@@ -276,9 +279,16 @@ def close_popups(
     for _ in range(loops):
         loop_closed = 0
         for frame in [page, *page.frames]:
+            if hasattr(frame, "is_detached") and frame.is_detached():
+                log("프레임이 분리되어 건너뜀")
+                continue
             for sel in selectors:
-                loc = frame.locator(sel)
-                count = loc.count()
+                try:
+                    loc = frame.locator(sel)
+                    count = loc.count()
+                except Exception as e:
+                    log(f"Locator.count 오류({sel}): {e}")
+                    continue
                 if count == 0:
                     continue
                 detected += count
@@ -349,9 +359,14 @@ def remaining_popup_button_ids(page: Page) -> list[str]:
 
     ids: list[str] = []
     for frame in [page, *page.frames]:
+        if hasattr(frame, "is_detached") and frame.is_detached():
+            continue
         for sel in selectors:
-            loc = frame.locator(sel)
-            count = loc.count()
+            try:
+                loc = frame.locator(sel)
+                count = loc.count()
+            except Exception:
+                continue
             for i in range(count):
                 btn = loc.nth(i)
                 if not btn.is_visible():
