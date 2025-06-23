@@ -9,6 +9,9 @@ import datetime
 from dotenv import load_dotenv
 from sales_analysis.navigate_sales_ratio import navigate_sales_ratio
 from sales_analysis.extract_sales_detail import extract_sales_detail
+from sales_analysis.middle_category_product_extractor import (
+    extract_middle_category_products,
+)
 
 # .env 파일 로드
 load_dotenv()
@@ -104,8 +107,13 @@ def main() -> None:
                 page.wait_for_timeout(wait_after_login * 1000)
 
             log("🟡 팝업 처리 시작")
-            if not process_popups_once(page):
-                log("⚠️ 팝업을 모두 닫지 못했으나 계속 진행합니다")
+            attempts = 0
+            while not popups_handled() and attempts < 3:
+                process_popups_once(page, force=True)
+                attempts += 1
+            if not popups_handled():
+                log("❗ 팝업을 모두 닫지 못했습니다. 자동화를 종료합니다")
+                return
 
             log("🟡 STZZ120 팝업 닫기 시도")
             try:
@@ -129,6 +137,7 @@ def main() -> None:
                     log("🟡 매출 상세 데이터 추출 시작")
                     extract_sales_detail(page)
                     log("✅ 매출 상세 데이터 추출 완료")
+                    extract_middle_category_products(page)
                 except Exception as e:
                     log(f"❗ 데이터 추출 실패: {e}")
                     raise
