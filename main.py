@@ -27,7 +27,11 @@ from utils import (
     set_ignore_popup_failure,
     log,
 )
-from handlers.popup_handler import close_detected_popups
+from handlers.popup_handler import (
+    close_detected_popups,
+    dialog_blocked,
+    login_page_visible,
+)
 
 
 def main() -> None:
@@ -106,6 +110,9 @@ def main() -> None:
             log("🟡 팝업 처리 시작")
             if not close_detected_popups(page):
                 log("❗ 팝업을 모두 닫지 못해 자동화를 중단합니다")
+                return
+            if dialog_blocked(page) or login_page_visible(page):
+                log("❗ 차단 메시지 또는 로그인 페이지 감지되어 종료합니다")
                 return
             log("✅ 팝업 처리 완료")
 
