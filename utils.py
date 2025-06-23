@@ -194,9 +194,10 @@ def force_click_with_timeout(page, element_id: str, max_delay_ms: int = 15000):
 
 def close_popups(
     page: Page,
-    repeat: int = 4,
+    repeat: int = 3,
     interval: int = 1000,
     final_wait: int = 3000,
+    max_wait: int | None = None,
     *,
     force: bool = False,
 ) -> tuple[int, int]:
@@ -213,6 +214,8 @@ def close_popups(
         Delay in milliseconds between passes. Default is ``1000``.
     final_wait : int, optional
         Extra wait after the routine finishes. Default is ``3000``.
+    max_wait : int | None, optional
+        If set, maximum time in milliseconds to spend searching for popups.
     force : bool, optional
         If ``True``, run regardless of current popup state.
 
@@ -246,6 +249,7 @@ def close_popups(
     detected = 0
 
     loops = max(2, repeat)
+    start = time.time() * 1000
     for _ in range(loops):
         loop_closed = 0
         for frame in [page, *page.frames]:
@@ -267,6 +271,9 @@ def close_popups(
                     except Exception as e:  # pragma: no cover - logging only
                         log(f"팝업 닫기 실패: {e}")
         if loop_closed == 0:
+            break
+        if max_wait is not None and (time.time() * 1000 - start) >= max_wait:
+            log("max_wait 초과로 팝업 탐색 중단")
             break
         page.wait_for_timeout(interval)
 
