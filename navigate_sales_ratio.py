@@ -4,6 +4,19 @@ from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 from utils import setup_dialog_handler, close_popups
 
+
+def click_sales_analysis_tab(page) -> bool:
+    """Click the '매출분석' tab in the top menu."""
+    selector = "div.nexatextitem:has-text('매출분석')"
+    try:
+        element = page.wait_for_selector(selector, timeout=5000)
+        element.click()
+        print("'매출분석' 탭 클릭 성공")
+        return True
+    except Exception as e:
+        print(f"'매출분석' 탭 클릭 실패: {e}")
+        return False
+
 load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +44,7 @@ def find_and_click(page, text: str) -> bool:
 
 
 def navigate_sales_ratio(page):
-    if not find_and_click(page, "매출분석"):
+    if not click_sales_analysis_tab(page):
         raise RuntimeError("Cannot find '매출분석' menu")
     page.wait_for_timeout(1000)
     if not find_and_click(page, "중분류별 매출 구성비"):
