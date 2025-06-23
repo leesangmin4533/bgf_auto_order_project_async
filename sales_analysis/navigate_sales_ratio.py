@@ -53,6 +53,8 @@ def find_and_click(page, text: str) -> bool:
 
 
 def navigate_sales_ratio(page):
+    if not popups_handled():
+        raise RuntimeError("팝업 처리가 완료되지 않았습니다")
     if not click_sales_analysis_tab(page):
         raise RuntimeError("Cannot find '매출분석' menu")
     page.wait_for_timeout(1000)
