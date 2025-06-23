@@ -8,6 +8,7 @@ import sys
 import datetime
 from dotenv import load_dotenv
 from sales_analysis.navigate_sales_ratio import navigate_sales_ratio
+from sales_analysis.sales_ratio_detail_extractor import extract_sales_ratio_details
 
 # .env 파일 로드
 load_dotenv()
@@ -119,6 +120,7 @@ def main() -> None:
             # 월요일에만 매출 분석 기능 실행
             if datetime.datetime.today().weekday() == 0:
                 navigate_sales_ratio(page)
+                extract_sales_ratio_details(page)
 
             # ⑤ 정적 HTML 데이터 파싱 예시
             html = page.content()
