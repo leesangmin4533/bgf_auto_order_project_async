@@ -8,7 +8,7 @@ import sys
 import datetime
 from dotenv import load_dotenv
 from sales_analysis.navigate_sales_ratio import navigate_sales_ratio
-from sales_analysis.sales_ratio_detail_extractor import extract_sales_ratio_details
+from sales_analysis.extract_sales_detail import extract_sales_detail
 
 # .env 파일 로드
 load_dotenv()
@@ -129,7 +129,7 @@ def main() -> None:
 
                 try:
                     log("🟡 매출 상세 데이터 추출 시작")
-                    extract_sales_ratio_details(page)
+                    extract_sales_detail(page)
                     log("✅ 매출 상세 데이터 추출 완료")
                 except Exception as e:
                     log(f"❗ 데이터 추출 실패: {e}")
