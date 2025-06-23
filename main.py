@@ -17,11 +17,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from utils import setup_dialog_handler, close_popups, popups_handled
+from utils import setup_dialog_handler, close_popups, popups_handled, log
 
 
 def main() -> None:
     """크롬을 실행해 로그인 후 팝업을 닫는 초기 단계만 수행."""
+    log("🚀 자동화 스크립트 시작")
     url = "https://store.bgfretail.com/websrc/deploy/index.html"
 
     # Load runtime configuration for additional settings
@@ -45,44 +46,45 @@ def main() -> None:
         matches = glob.glob(os.path.join(BASE_DIR, "*structure*.json"))
         if matches:
             structure_file = matches[0]
-            print(f"{structure_file} 파일을 대신 사용합니다.")
+            log(f"{structure_file} 파일을 대신 사용합니다.")
         else:
-            print(f"{structure_file} 파일을 찾을 수 없습니다. 구조를 자동으로 생성합니다.")
+            log(f"{structure_file} 파일을 찾을 수 없습니다. 구조를 자동으로 생성합니다.")
             try:
                 subprocess.run([sys.executable, os.path.join(BASE_DIR, "build_structure.py")], check=True, cwd=BASE_DIR)
             except Exception as e:
-                print(f"구조 파일 생성 실패: {e}")
+                log(f"구조 파일 생성 실패: {e}")
                 return
             if not os.path.exists(structure_file):
-                print(f"구조 파일 생성 후에도 {structure_file}을 찾지 못했습니다.")
+                log(f"구조 파일 생성 후에도 {structure_file}을 찾지 못했습니다.")
                 return
 
     try:
         with open(structure_file, "r", encoding="utf-8") as f:
             structure = json.load(f)
     except FileNotFoundError:
-        print(f"{structure_file} 파일을 여는 데 실패했습니다. 경로를 확인하세요.")
+        log(f"{structure_file} 파일을 여는 데 실패했습니다. 경로를 확인하세요.")
         return
 
     # ① Playwright 브라우저 실행
     normal_exit = False
+    log("🟡 브라우저 실행")
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
+        log("✅ 브라우저 페이지 생성 완료")
         setup_dialog_handler(page)
         try:
+            log("➡️ 로그인 페이지 접속 중")
             page.goto(url)
-
-            # ② 페이지 구조 로드 완료 후 로그인 진행
 
             id_field = structure["id"]
             pw_field = structure["password"]
             login_keyword = structure["login_button"]
 
-            # ③ 로그인 진행
             if not user_id or not user_pw:
-                print("LOGIN_ID 또는 LOGIN_PW가 설정되지 않았습니다.")
+                log("❗ LOGIN_ID 또는 LOGIN_PW가 설정되지 않았습니다.")
                 return
+            log("🟡 로그인 시도")
             page.locator(id_field).click()
             page.keyboard.type(user_id)
             page.locator(pw_field).click()
@@ -92,21 +94,18 @@ def main() -> None:
             if wait_after_login:
                 page.wait_for_timeout(wait_after_login * 1000)
 
-            # ④ 로그인 후 나타나는 팝업을 빠르게 닫기
+            log("🟡 팝업 닫기 루프 시작")
             closed = 0
-            for _ in range(3):
-                closed += close_popups(page, repeat=1, interval=500, max_wait=3000)
-                if popups_handled():
-                    break
+            for attempt in range(3):
+                log(f"  ➡️ 팝업 탐색 {attempt + 1}회차")
+                closed += close_popups(page, repeat=2, interval=500, max_wait=3000, force=True)
                 page.wait_for_timeout(1000)
             if popups_handled():
-                print("✅ 모든 팝업 처리 완료")
+                log("✅ 팝업 처리 완료, 다음 단계로 이동 중...")
             else:
-                print("⚠️ 일부 팝업이 닫히지 않았습니다")
+                log("⚠️ 일부 팝업이 닫히지 않았습니다")
 
-            # STZZ120 페이지 팝업 닫기 처리
-
-            # STZZ120 페이지 팝업 닫기 처리
+            log("🟡 STZZ120 팝업 닫기 시도")
             try:
                 close_selector = (
                     "#mainframe\\.HFrameSet00\\.VFrameSet00\\.FrameSet\\.WorkFrame\\.STZZ120_P0\\.form\\.btn_close\\:icontext"
@@ -114,29 +113,43 @@ def main() -> None:
                 close_btn = page.locator(close_selector)
                 if close_btn.count() > 0 and close_btn.is_visible():
                     close_btn.click(timeout=3000)
+                    log("✅ STZZ120 팝업 닫기 완료")
             except Exception as e:
-                print(f"STZZ120 팝업 닫기 실패: {e}")
+                log(f"❗ STZZ120 팝업 닫기 실패: {e}")
 
             # 월요일에만 매출 분석 기능 실행
             if datetime.datetime.today().weekday() == 0:
-                navigate_sales_ratio(page)
-                extract_sales_ratio_details(page)
+                try:
+                    log("➡️ 매출분석 메뉴 진입 시도")
+                    navigate_sales_ratio(page)
+                    log("✅ 메뉴 진입 성공")
+                except Exception as e:
+                    log(f"❗ 메뉴 진입 실패 at navigate_sales_ratio: {e}")
+                    raise
+
+                try:
+                    log("🟡 매출 상세 데이터 추출 시작")
+                    extract_sales_ratio_details(page)
+                    log("✅ 매출 상세 데이터 추출 완료")
+                except Exception as e:
+                    log(f"❗ 데이터 추출 실패: {e}")
+                    raise
 
             # ⑤ 정적 HTML 데이터 파싱 예시
             html = page.content()
             soup = BeautifulSoup(html, "html.parser")
             products = [p.get_text(strip=True) for p in soup.select(".product-name")]
-            print("상품 목록:", products)
+            log(f"상품 목록: {products}")
 
             normal_exit = True
         except Exception as e:
-            print(f"오류 발생: {e}")
+            log(f"❗ 오류 발생: {e}")
         finally:
             try:
                 close_popups(page, force=True)
                 browser.close()
             finally:
-                print("정상 종료" if normal_exit else "비정상 종료")
+                log("정상 종료" if normal_exit else "비정상 종료")
 
     # 이후 단계는 추후 구현 예정
     # detect_and_click_text("발주")
