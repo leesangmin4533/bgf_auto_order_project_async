@@ -21,13 +21,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 from utils import (
-    setup_dialog_handler,
-    close_popups,
     inject_init_cleanup_script,
     set_ignore_popup_failure,
     log,
 )
 from handlers.popup_handler import (
+    setup_dialog_handler,
     close_detected_popups,
     dialog_blocked,
     login_page_visible,
@@ -149,7 +148,6 @@ def main() -> None:
             log(f"❗ 오류 발생: {e}")
         finally:
             try:
-                close_popups(page, force=True)
                 browser.close()
             finally:
                 log("정상 종료" if normal_exit else "비정상 종료")
