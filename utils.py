@@ -197,143 +197,82 @@ def close_popups(
     repeat: int = 4,
     interval: int = 1000,
     final_wait: int = 3000,
-    max_wait: int | None = 5000,
     *,
     force: bool = False,
 ) -> tuple[int, int]:
-    """Detect and close popups on the page.
+    """Detect and close popups strictly by locator click only.
 
     Parameters
     ----------
     page : Page
-        The Playwright page object to operate on.
+        The Playwright page instance.
     repeat : int, optional
-        Number of passes to check for popups. Default is 4.
+        Number of passes to search for popups. ``repeat`` is forced to be at
+        least ``2``.
     interval : int, optional
-        Delay between passes in milliseconds. Default is 1000.
+        Delay in milliseconds between passes. Default is ``1000``.
     final_wait : int, optional
-        Extra wait time in milliseconds after handling popups. Default is 3000.
-    max_wait : int | None, optional
-        Maximum wait time in milliseconds for the overall routine. ``None`` means
-        no time limit. Default is ``5000``.
+        Extra wait after the routine finishes. Default is ``3000``.
     force : bool, optional
-        If ``True``, run the popup routine regardless of current global state.
-        Default is ``False``.
+        If ``True``, run regardless of current popup state.
 
     Returns
     -------
     tuple[int, int]
-        A tuple of ``(closed_count, detected_count)`` representing how many
-        popups were closed and how many close buttons were detected.
+        ``(closed_count, detected_count)``
     """
 
-    global _closed_popups
+    global _closed_popups, _popup_failure_count
 
     if _closed_popups >= EXPECTED_POPUPS and not force:
         log("✅ 모든 팝업 이미 처리됨, 추가 닫기 생략")
         return 0, 0
 
-    selectors = [
-        "div.nexacontentsbox:has-text('닫기')",
-        "button[id*='btn_close']",
-        "button[class*='btn_close']",
-        "button[id*='btnClose']",
-        "button[class*='btnClose']",
+    text_selectors = [
+        "text=닫기",
+        "text=닫습니다",
+        "button:has-text('닫기')",
+        "[role='button']:has-text('닫기')",
+    ]
+    attr_selectors = [
         "button[id*='close']",
         "button[class*='close']",
-        "[role='button'][id*='btn_close']",
-        "[role='button'][class*='btn_close']",
-        "[role='button'][id*='btnClose']",
-        "[role='button'][class*='btnClose']",
         "[role='button'][id*='close']",
         "[role='button'][class*='close']",
-        "button:has-text('닫기')",
-        "button:has-text('닫습니다')",
-        "[role='button']:has-text('닫기')",
-        "[role='button']:has-text('닫습니다')",
     ]
-    selector_str = ",".join(selectors)
+    selectors = text_selectors + attr_selectors
 
-    start = time.time()
-    attempts = 0
-    total_closed = 0
-    total_detected = 0
+    closed = 0
+    detected = 0
 
-    try:
-        while True:
-            for frame in [page, *page.frames]:
-                buttons = frame.locator(selector_str)
-                count = buttons.count()
-                total_detected += count
-                for i in range(count):
-                    btn = buttons.nth(i)
-                    if btn.is_visible():
-                        try:
-                            frame.evaluate(
-                                "(el) => { const blk = document.getElementById('nexacontainer') || document.body; const old=blk.style.pointerEvents; blk.style.pointerEvents='none'; el.click(); blk.style.pointerEvents=old; }",
-                                btn,
-                            )
-                            total_closed += 1
-                            frame.wait_for_timeout(800)
-                        except Exception as e:  # pragma: no cover - simple logging
-                            log(f"팝업 닫기 실패: {e}")
-                            try:
-                                bbox = btn.bounding_box()
-                                if bbox:
-                                    cx = bbox["x"] + bbox["width"] / 2
-                                    cy = bbox["y"] + bbox["height"] / 2
-                                    has_overlay = frame.evaluate(
-                                        "(x, y, el) => { const o = document.elementFromPoint(x, y); return o && o !== el && !o.contains(el); }",
-                                        cx,
-                                        cy,
-                                        btn,
-                                    )
-                                    if has_overlay:
-                                        log("요소 위에 오버레이가 존재하여 클릭이 차단됨")
-                                        bid = btn.get_attribute("id")
-                                        if bid:
-                                            force_click_with_timeout(frame, bid)
-                                            total_closed += 1
-                            except Exception:
-                                pass
-                        finally:
-                            frame.evaluate("document.getElementById('nexacontainer').style.pointerEvents = ''")
-            attempts += 1
-            elapsed = (time.time() - start) * 1000
-            if (max_wait is not None and elapsed >= max_wait) or attempts >= repeat:
-                break
-            page.wait_for_timeout(interval)
-
-    finally:
-        page.evaluate("document.getElementById('nexacontainer').style.pointerEvents = ''")
-
-    _closed_popups += total_closed
-
-    log(f"총 {total_closed}개 팝업 닫기, 감지된 버튼 {total_detected}개")
-    remaining_after_close = total_detected - total_closed
-    if remaining_after_close > 0:
-        log(f"⚠️ 닫히지 않은 팝업 버튼 {remaining_after_close}개 존재")
-        if remaining_after_close >= 5:
-            log("팝업 구조 변경 가능성 있음")
-        # gather remaining popup ids for debugging
-        unresolved_ids = []
+    loops = max(2, repeat)
+    for _ in range(loops):
+        loop_closed = 0
         for frame in [page, *page.frames]:
-            buttons = frame.locator(selector_str)
-            for i in range(buttons.count()):
-                b = buttons.nth(i)
-                if b.is_visible():
-                    bid = b.get_attribute("id")
-                    if bid:
-                        unresolved_ids.append(bid)
-        if unresolved_ids:
-            log("닫히지 않은 팝업 ID: " + ", ".join(unresolved_ids))
-            try:
-                page.evaluate(f"alert('Unclosed popups: {','.join(unresolved_ids)}')")
-            except Exception:
-                log("alert 표시 실패")
+            for sel in selectors:
+                loc = frame.locator(sel)
+                count = loc.count()
+                if count == 0:
+                    continue
+                detected += count
+                for i in range(count):
+                    btn = loc.nth(i)
+                    if not btn.is_visible():
+                        continue
+                    try:
+                        btn.click(timeout=0)
+                        frame.wait_for_timeout(300)
+                        closed += 1
+                        loop_closed += 1
+                    except Exception as e:  # pragma: no cover - logging only
+                        log(f"팝업 닫기 실패: {e}")
+        if loop_closed == 0:
+            break
+        page.wait_for_timeout(interval)
 
-    global _popup_failure_count
+    _closed_popups += closed
 
+    remaining_after_close = detected - closed
     if remaining_after_close > 0:
         _popup_failure_count += 1
     else:
@@ -343,8 +282,9 @@ def close_popups(
         fallback_close_popups(page)
         _popup_failure_count = 0
 
+    log(f"총 {closed}개 팝업 닫기, 감지된 버튼 {detected}개")
     page.wait_for_timeout(final_wait)
-    return total_closed, total_detected
+    return closed, detected
 
 
 def process_popups_once(page: Page, *, force: bool = False) -> bool:
