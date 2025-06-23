@@ -138,6 +138,28 @@ def fallback_close_popups(page: Page) -> None:
         log("⬆️ 팝업 강제 종료 전략 완료")
 
 
+def close_stzz120_popup(page: Page) -> bool:
+    """Close the STZZ120_P0 popup by coordinate click if visible."""
+    close_btn_id = (
+        "mainframe.HFrameSet00.VFrameSet00.FrameSet.WorkFrame.STZZ120_P0.form.btn_close:icontext"
+    )
+    selector = f"#{close_btn_id.replace('.', '\\.').replace(':', '\\:')}"
+    btn = page.locator(selector)
+    if btn.count() > 0 and btn.is_visible():
+        page.evaluate("document.getElementById('nexacontainer').style.pointerEvents = 'none'")
+        box = btn.bounding_box()
+        if box:
+            page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+            log("✅ 강제 좌표 클릭으로 STZZ120 팝업 닫기 성공")
+        else:
+            log("⚠️ boundingBox 없음: 강제 클릭 실패")
+        page.evaluate("document.getElementById('nexacontainer').style.pointerEvents = ''")
+        return True
+    else:
+        log("ℹ️ STZZ120 팝업 안 보임")
+    return False
+
+
 def close_popups(
     page: Page,
     repeat: int = 4,

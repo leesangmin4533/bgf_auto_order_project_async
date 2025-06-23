@@ -22,6 +22,7 @@ from utils import (
     close_popups,
     popups_handled,
     process_popups_once,
+    close_stzz120_popup,
     log,
 )
 
@@ -107,15 +108,7 @@ def main() -> None:
 
             log("🟡 STZZ120 팝업 닫기 시도")
             try:
-                close_selector = (
-                    "#mainframe\\.HFrameSet00\\.VFrameSet00\\.FrameSet\\.WorkFrame\\.STZZ120_P0\\.form\\.btn_close\\:icontext"
-                )
-                close_btn = page.locator(close_selector)
-                if close_btn.count() > 0 and close_btn.is_visible():
-                    page.evaluate("document.getElementById('nexacontainer').style.pointerEvents = 'none'")
-                    close_btn.click(timeout=3000)
-                    page.evaluate("document.getElementById('nexacontainer').style.pointerEvents = ''")
-                    log("✅ STZZ120 팝업 닫기 완료")
+                close_stzz120_popup(page)
                 # 추가 팝업 존재 여부 재확인
                 close_popups(page, repeat=4, interval=1000, force=True)
             except Exception as e:
