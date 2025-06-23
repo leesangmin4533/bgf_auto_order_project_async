@@ -111,6 +111,9 @@ def main() -> None:
             if not close_detected_popups(page):
                 log("❗ 팝업을 모두 닫지 못해 자동화를 중단합니다")
                 return
+            if "차단되었습니다" in page.content():
+                log("❌ 페이지에서 차단 메시지 감지되어 종료합니다")
+                return
             if dialog_blocked(page) or login_page_visible(page):
                 log("❗ 차단 메시지 또는 로그인 페이지 감지되어 종료합니다")
                 return
