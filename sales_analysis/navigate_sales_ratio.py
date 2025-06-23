@@ -1,5 +1,7 @@
 import json
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 from utils import setup_dialog_handler, close_popups
@@ -19,16 +21,17 @@ def click_sales_analysis_tab(page) -> bool:
 
 load_dotenv()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# 프로젝트 루트 디렉터리 경로
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def load_config():
-    with open(os.path.join(BASE_DIR, "runtime_config.json"), "r", encoding="utf-8") as f:
+    with open(BASE_DIR / "runtime_config.json", "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def load_structure():
-    with open(os.path.join(BASE_DIR, "page_structure.json"), "r", encoding="utf-8") as f:
+    with open(BASE_DIR / "page_structure.json", "r", encoding="utf-8") as f:
         return json.load(f)
 
 

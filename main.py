@@ -5,7 +5,9 @@ import os
 import glob
 import subprocess
 import sys
+import datetime
 from dotenv import load_dotenv
+from sales_analysis.navigate_sales_ratio import navigate_sales_ratio
 
 # .env 파일 로드
 load_dotenv()
@@ -112,6 +114,10 @@ def main() -> None:
                     close_btn.click()
             except Exception as e:
                 print(f"STZZ120 팝업 닫기 실패: {e}")
+
+            # 월요일에만 매출 분석 기능 실행
+            if datetime.datetime.today().weekday() == 0:
+                navigate_sales_ratio(page)
 
             # ⑤ 정적 HTML 데이터 파싱 예시
             html = page.content()
