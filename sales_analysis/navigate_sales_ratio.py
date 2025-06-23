@@ -91,6 +91,8 @@ def run():
                     page.locator(sel).click()
                     break
 
+            close_popups(page, repeat=3, interval=1000, max_wait=5000)
+
             navigate_sales_ratio(page)
             print("메뉴 이동 완료")
             normal_exit = True

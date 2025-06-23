@@ -107,6 +107,9 @@ def main() -> None:
             else:
                 print("버튼 없음")
 
+            # 추가 안전 장치로 팝업을 반복적으로 닫음
+            close_popups(page, repeat=3, interval=1000, max_wait=5000)
+
             # STZZ120 페이지 팝업 닫기 처리
             try:
                 close_selector = (

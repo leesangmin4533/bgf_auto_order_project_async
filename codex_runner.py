@@ -64,6 +64,8 @@ def run() -> None:
             else:
                 print("버튼 없음")
 
+            close_popups(page, repeat=3, interval=1000, max_wait=5000)
+
             # Additional popup handling for STZZ120 page
             try:
                 close_selector = (
