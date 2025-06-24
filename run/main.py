@@ -6,6 +6,12 @@ import glob
 import subprocess
 import sys
 import datetime
+
+# Add project root to ``sys.path`` so modules are importable when running the
+# script from any location.
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 from dotenv import load_dotenv
 from sales_analysis.navigate_sales_ratio import navigate_sales_ratio
 from sales_analysis.extract_sales_detail import extract_sales_detail
