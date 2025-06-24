@@ -1,13 +1,8 @@
-import os
-from dotenv import load_dotenv
+import datetime
 from playwright.sync_api import sync_playwright
+
 import utils
-
-load_dotenv()
-
-ID = os.getenv("LOGIN_ID")
-PW = os.getenv("LOGIN_PW")
-
+from login.login_handler import perform_login
 
 POPUPS_CLOSED = False
 
@@ -64,36 +59,18 @@ def close_popups(page, loops: int = 2) -> bool:
 
 
 def main():
-    import datetime
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
-        page.goto("https://store.bgfretail.com/websrc/deploy/index.html")
-
-        # 아이디 입력
-        page.fill("#txtUserID", ID)
-        page.wait_for_timeout(1000)
-
-        # 비밀번호 입력
-        page.fill("#txtPassWord", PW)
-        page.wait_for_timeout(1000)
-
-        # 로그인 버튼 클릭
-        page.click("#btnLogin")
-
-        # 로그인 결과 확인을 위해 5초 대기
-        page.wait_for_timeout(5000)
+        perform_login(page)
 
         if not close_popups(page):
             browser.close()
             return
 
         if datetime.datetime.today().weekday() == 0:
-            nav = __import__(
-                "sales_analysis.navigate_sales_ratio",
-                fromlist=["navigate_sales_ratio"],
-            )
-            nav.navigate_sales_ratio(page)
+            from sales_analysis.navigate_sales_ratio import navigate_sales_ratio
+            navigate_sales_ratio(page)
 
         browser.close()
 
