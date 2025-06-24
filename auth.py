@@ -18,13 +18,30 @@ def perform_login(page: Page, structure: dict) -> bool:
         return False
 
     try:
-        log("[로그인] 입력값 채우기")
+        log("[로그인] 페이지 이동")
         page.goto(URL)
-        page.fill(structure["id"], user_id)
-        page.fill(structure["password"], user_pw)
 
+        # Wait for both input fields to be ready
+        page.wait_for_selector(structure["id"])
+        page.wait_for_selector(structure["password"])
+
+        id_input = page.locator(structure["id"])
+        pw_input = page.locator(structure["password"])
+
+        log("[로그인] 아이디 입력")
+        id_input.click()
+        id_input.fill(user_id)
+
+        log("[로그인] 비밀번호 입력")
+        pw_input.click()
+        pw_input.fill(user_pw)
+
+        # Small delay before clicking the login button
+        page.wait_for_timeout(500)
+
+        login_btn = page.locator(structure["login_button"])
         log("[로그인] 로그인 버튼 클릭")
-        page.click(structure["login_button"])
+        login_btn.click()
 
         log("[로그인] 로그인 후 로딩 대기")
         page.wait_for_selector("#topMenu", timeout=5000)
