@@ -1,7 +1,7 @@
 import datetime
 from playwright.sync_api import Page, TimeoutError
 import utils
-from .popup_handler import setup_dialog_handler as _setup_dialog_handler
+from .popup_handler import setup_dialog_handler as _setup_dialog_handler, register_dialog_handler
 
 from popup_text_handler import handle_popup_by_text
 
@@ -16,6 +16,7 @@ def setup_dialog_handler(page: Page, accept: bool = True) -> None:
 
 def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 1000) -> bool:
     """Search and close popups using event based waits."""
+    register_dialog_handler(page)
     selectors = [
         "text=닫기",
         "button:has-text('닫기')",

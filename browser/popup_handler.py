@@ -7,6 +7,9 @@ from popup_text_handler import handle_popup_by_text
 
 import utils
 
+# 마지막으로 처리된 dialog 메시지 저장용
+_last_dialog_message: str | None = None
+
 # 메시지 차단 감지용 선택자 목록
 BLOCK_SELECTORS = [
     "text=이 페이지가 추가적인 대화를 생성하지 않도록 차단되었습니다",
@@ -57,6 +60,27 @@ def is_logged_in(page: Page) -> bool:
         return True
 
 
+def register_dialog_handler(page: Page) -> None:
+    """Register a one-time dialog handler with error protection."""
+
+    def safe_accept(dialog) -> None:
+        global _last_dialog_message
+        try:
+            msg = dialog.message
+            if _last_dialog_message == msg:
+                utils.log("⚠️ 중복 다이얼로그 무시")
+                return
+            _last_dialog_message = msg
+            utils.log(f"🟡 다이얼로그 감지됨: '{msg}'")
+            dialog.accept()
+        except Exception as e:  # pragma: no cover - logging only
+            utils.log(f"❌ 다이얼로그 처리 실패 또는 중복 처리 시도됨: {e}")
+
+    try:
+        page.once("dialog", safe_accept)
+    except Exception as e:  # pragma: no cover - logging only
+        utils.log(f"❌ dialog 핸들러 등록 실패: {e}")
+
 
 def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
     """Register a dialog handler once to auto process common dialogs."""
@@ -65,16 +89,22 @@ def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
         return
 
     def _handle(dialog) -> None:
+        global _last_dialog_message
         logout_keywords = ["종료 하시겠습니까", "로그아웃", "세션 종료"]
         try:
-            if any(kw in dialog.message for kw in logout_keywords):
+            msg = dialog.message
+            if _last_dialog_message == msg:
+                utils.log("⚠️ 중복 다이얼로그 무시")
+                return
+            _last_dialog_message = msg
+            if any(kw in msg for kw in logout_keywords):
                 try:
                     dialog.dismiss()
                 except Exception:
                     pass
-                utils.log(f"⚠️ 로그아웃 관련 다이얼로그 무시: {dialog.message}")
+                utils.log(f"⚠️ 로그아웃 관련 다이얼로그 무시: {msg}")
                 return
-            if "차단되었습니다" in dialog.message:
+            if "차단되었습니다" in msg:
                 try:
                     dialog.dismiss()
                 except Exception:
@@ -88,7 +118,7 @@ def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
                     dialog.dismiss()
                 except Exception as e:
                     utils.log(f"dialog.dismiss 오류: {e}")
-            utils.log(f"자동 다이얼로그 처리: {dialog.message}")
+            utils.log(f"자동 다이얼로그 처리: {msg}")
         except Exception as e:
             utils.log(f"다이얼로그 처리 오류: {e}")
 
@@ -100,6 +130,7 @@ def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
 
 def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> bool:
     """Close visible popups using event based waits."""
+    register_dialog_handler(page)
     selectors = [
         "text=닫기",
         "button:has-text('닫기')",
