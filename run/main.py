@@ -8,7 +8,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from auth import perform_login
+from login import perform_login
 from utils import process_popups_once, popups_handled
 from order import run_sales_analysis
 
