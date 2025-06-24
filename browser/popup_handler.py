@@ -5,36 +5,7 @@ import time
 from playwright.sync_api import Page
 import utils
 from popup_text_handler import handle_popup_by_text
-
-# 외부에서 사용할 안전한 dialog accept 핸들러
-def safe_accept(dialog) -> None:
-    """Safely accept dialogs, caching the last message to avoid repeats."""
-    global _last_dialog_message
-    try:
-        msg = dialog.message
-        if _last_dialog_message == msg:
-            utils.log("⚠️ 중복 다이얼로그 무시")
-            return
-        _last_dialog_message = msg
-        utils.log(f"🟡 다이얼로그 감지됨: '{msg}'")
-        try:
-            dialog.accept()
-        except Exception as e:
-            utils.log(f"dialog.accept 실패: {e}")
-        time.sleep(2)
-    except Exception as e:  # pragma: no cover - logging only
-        utils.log(f"❌ 다이얼로그 처리 실패 또는 중복 처리 시도됨: {e}")
-
-
-def add_safe_accept_once(page: Page) -> None:
-    """Attach ``safe_accept`` once to the given page."""
-    try:
-        page.once("dialog", safe_accept)
-    except Exception as e:  # pragma: no cover - logging only
-        utils.log(f"❌ dialog 핸들러 등록 실패: {e}")
-
-# 마지막으로 처리된 dialog 메시지 저장용
-_last_dialog_message: str | None = None
+from . import popup_utils
 
 # 메시지 차단 감지용 선택자 목록
 BLOCK_SELECTORS = [
@@ -89,7 +60,7 @@ def is_logged_in(page: Page) -> bool:
 def register_dialog_handler(page: Page) -> None:
     """Register ``safe_accept`` once on the page."""
 
-    add_safe_accept_once(page)
+    popup_utils.add_safe_accept_once(page)
 
 
 def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
@@ -99,14 +70,13 @@ def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
         return
 
     def _handle(dialog) -> None:
-        global _last_dialog_message
         logout_keywords = ["종료 하시겠습니까", "로그아웃", "세션 종료"]
         try:
             msg = dialog.message
-            if _last_dialog_message == msg:
+            if popup_utils._last_dialog_message == msg:
                 utils.log("⚠️ 중복 다이얼로그 무시")
                 return
-            _last_dialog_message = msg
+            popup_utils._last_dialog_message = msg
             if any(kw in msg for kw in logout_keywords):
                 try:
                     dialog.dismiss()
@@ -179,7 +149,7 @@ def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> boo
                     if not btn.is_visible():
                         continue
                     try:
-                        add_safe_accept_once(frame)
+                        popup_utils.add_safe_accept_once(frame)
                         with frame.expect_popup(timeout=500) as pop:
                             btn.click(timeout=0)
                         if pop.value:

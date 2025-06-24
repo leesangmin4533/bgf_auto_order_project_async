@@ -1,6 +1,6 @@
 from playwright.sync_api import Page
 from utils import log
-from browser.popup_handler import add_safe_accept_once
+from browser.popup_utils import add_safe_accept_once
 
 POPUP_RULES = [
     {
