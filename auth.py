@@ -89,6 +89,8 @@ def perform_login(page: Page, structure: dict) -> bool:
             log("✅ 메뉴 로딩 완료")
 
         log("[로그인] 로그인 성공 판단 완료")
+        log("✅ 로그인 성공 → 안정화 대기")
+        page.wait_for_timeout(3000)
         setup_dialog_handler(page)
         return True
 

@@ -135,6 +135,8 @@ def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> boo
                             btn.click(timeout=0)
                         if pop.value:
                             pop.value.close()
+                        frame.wait_for_timeout(3000)
+                        utils.log("⏱️ 팝업 닫기 후 3초간 안정화 대기")
                         found = True
                         closed_any = True
                     except Exception:
