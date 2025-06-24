@@ -25,8 +25,8 @@ from utils import (
     set_ignore_popup_failure,
     log,
 )
+from popup_handler_utility import setup_dialog_handler, close_layer_popup
 from handlers.popup_handler import (
-    setup_dialog_handler,
     close_detected_popups,
     dialog_blocked,
     login_page_visible,
@@ -110,6 +110,9 @@ def main() -> None:
 
             if wait_after_login:
                 page.wait_for_timeout(wait_after_login * 1000)
+
+            # 특정 레이어 팝업 우선 처리
+            close_layer_popup(page, "#popup", "#popup-close")
 
             log("🟡 팝업 처리 시작")
             if not close_detected_popups(page):
