@@ -1,0 +1,8 @@
+{
+  "files": {
+    "codex_instruction.txt": "마스터 제어용",
+    "login_flow.txt": "로그인 전용",
+    "popup_flow.txt": "팝업처리 전용",
+    "sales_auto_order.txt": "판매실적발주 전용"
+  }
+}

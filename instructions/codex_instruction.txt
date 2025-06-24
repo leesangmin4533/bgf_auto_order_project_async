@@ -1,0 +1,28 @@
+[작업]
+판매실적 발주 자동화
+
+[경로]
+발주 > 판매실적발주
+
+[구조정의]
+login_button = [id='mainframe.HFrameSet00.LoginFrame.form.div_login.form.btn_login']
+id_input = [id='mainframe.HFrameSet00.LoginFrame.form.div_login.form.edt_id:input']
+pw_input = [id='mainframe.HFrameSet00.LoginFrame.form.div_login.form.edt_pw:input']
+popup = {"container": "#popup", "close": "#popup-close"}
+success_marker = #topMenu
+
+[조건]
+요일 = 월요일
+팝업_무시 = False
+로그인_실패_판별 = URL에 login 포함 또는 success_marker 없으면
+
+[단계]
+1. 로그인 수행
+2. 팝업 처리
+3. 메뉴 진입
+4. 데이터 추출
+
+[상태]
+진행단계 = 로그인 완료
+마지막실패 = popup 닫기 실패
+실행 방식
