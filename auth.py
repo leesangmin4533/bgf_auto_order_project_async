@@ -2,12 +2,6 @@ import os
 from dotenv import load_dotenv
 from playwright.sync_api import Page
 from utils import log, handle_exception, wait
-from browser.popup_handler_utility import (
-    close_layer_popup,
-    close_all_popups,
-    setup_dialog_handler,
-)
-from browser.popup_handler import register_dialog_handler, add_safe_accept_once
 
 load_dotenv()
 
@@ -55,48 +49,18 @@ def perform_login(page: Page, structure: dict) -> bool:
         login_btn = page.locator(structure["login_button"])
         log("[로그인] 로그인 버튼 클릭")
         wait(page)
-        add_safe_accept_once(page)
-        page.wait_for_timeout(2000)
         login_btn.click()
-        page.wait_for_timeout(2000)
-
-        # 로그인 직후 등장하는 재택 안내 팝업 우선 처리
-        wait(page)
-        close_layer_popup(
-            page,
-            popup_selector="#popupDiv",
-            close_selector="button:has-text('닫기')",
-            timeout=3000,
-        )
-        # 기존 팝업도 추가로 처리
-        wait(page)
-        close_layer_popup(page, "#popup", "#popup-close")
-
-        # 모든 팝업이 닫힐 때까지 반복적으로 탐색
-        wait(page)
-        close_all_popups(page)
-        # 팝업을 모두 닫은 후 DOM 안정화를 위해 3초간 대기
         page.wait_for_timeout(3000)
 
-        # 로딩 진행 표시가 사라질 때까지 대기
-        try:
-            page.locator(".progress-container").wait_for(state="hidden", timeout=5000)
-        except Exception:
-            log("로딩 UI가 사라지지 않음 → 무시하고 다음 진행")
-
-        log("[로그인] 로그인 후 메뉴 로딩 대기")
+        log("[로그인] 로그인 결과 확인")
         try:
             page.wait_for_selector("#topMenu", timeout=10000)
         except Exception:
             log("⚠️ 메뉴 로딩 실패 - #topMenu 미감지")
+            return False
         else:
-            log("✅ 메뉴 로딩 완료")
-
-        log("[로그인] 로그인 성공 판단 완료")
-        log("✅ 로그인 성공 → 안정화 대기")
-        page.wait_for_timeout(3000)
-        setup_dialog_handler(page)
-        return True
+            log("✅ 로그인 성공")
+            return True
 
     except Exception as e:
         handle_exception(page, "perform_login", e)
