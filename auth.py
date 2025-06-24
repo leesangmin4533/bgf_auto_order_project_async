@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from playwright.sync_api import Page
-from utils import log, handle_exception
+from utils import log, handle_exception, wait
 from browser.popup_handler_utility import (
     close_layer_popup,
     close_all_popups,
@@ -23,7 +23,9 @@ def perform_login(page: Page, structure: dict) -> bool:
 
     try:
         log("[로그인] 페이지 이동")
+        wait(page)
         page.goto(URL)
+        wait(page)
 
         # Wait for both input fields to be ready
         page.wait_for_selector(structure["id"])
@@ -33,21 +35,30 @@ def perform_login(page: Page, structure: dict) -> bool:
         pw_input = page.locator(structure["password"])
 
         log("[로그인] 아이디 입력")
+        wait(page)
         id_input.click()
+        wait(page)
         id_input.fill(user_id)
+        wait(page)
 
         log("[로그인] 비밀번호 입력")
+        wait(page)
         pw_input.click()
+        wait(page)
         pw_input.fill(user_pw)
+        wait(page)
 
         # Small delay before clicking the login button
-        page.wait_for_timeout(500)
+        wait(page)
 
         login_btn = page.locator(structure["login_button"])
         log("[로그인] 로그인 버튼 클릭")
+        wait(page)
         login_btn.click()
+        wait(page)
 
         # 로그인 직후 등장하는 재택 안내 팝업 우선 처리
+        wait(page)
         close_layer_popup(
             page,
             popup_selector="#popupDiv",
@@ -55,10 +66,13 @@ def perform_login(page: Page, structure: dict) -> bool:
             timeout=3000,
         )
         # 기존 팝업도 추가로 처리
+        wait(page)
         close_layer_popup(page, "#popup", "#popup-close")
 
         # 모든 팝업이 닫힐 때까지 반복적으로 탐색
+        wait(page)
         close_all_popups(page)
+        wait(page)
 
         # 로딩 진행 표시가 사라질 때까지 대기
         try:

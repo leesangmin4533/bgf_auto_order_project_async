@@ -2,7 +2,7 @@ import json
 import datetime
 from pathlib import Path
 from playwright.sync_api import Page, expect
-from utils import popups_handled, log
+from utils import popups_handled, log, wait
 
 
 def extract_middle_category_products(page: Page) -> Path:
@@ -28,7 +28,9 @@ def extract_middle_category_products(page: Page) -> Path:
     for i in range(row_count):
         row = left_rows.nth(i)
         category = row.inner_text().strip()
+        wait(page)
         row.click()
+        wait(page)
         expect(page.locator("#gdDetail div[class^='gridrow_']")).to_be_visible(timeout=3000)
 
         detail_rows = page.locator("#gdDetail div[class^='gridrow_']")
@@ -48,6 +50,7 @@ def extract_middle_category_products(page: Page) -> Path:
     out_path = output_dir / file_name
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
+        wait(page)
 
     log(f"✅ 상품코드 및 상품명 저장 → {out_path}")
     return out_path
