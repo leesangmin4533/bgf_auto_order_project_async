@@ -25,6 +25,7 @@ from utils import (
     set_ignore_popup_failure,
     update_instruction_state,
     handle_exception,
+    wait,
 )
 
 load_dotenv()
@@ -81,10 +82,14 @@ def main() -> None:
                 update_instruction_state("종료", "로그인 실패")
                 return
 
+            wait(page)
+
             update_instruction_state("팝업 처리 중")
             log("close_all_popups() 호출", stage="팝업 처리")
+            wait(page)
             try:
                 popup_closed = close_all_popups(page)
+                wait(page)
                 if not popup_closed:
                     popup_fail_count += 1
                     log("❌ 팝업 닫기 실패", stage="팝업 처리")
@@ -114,6 +119,7 @@ def main() -> None:
                             break
                     if alt_found and close_all_popups(page):
                         popup_closed = True
+                        wait(page)
                     if not popup_closed:
                         # 메뉴 탐색 재시도
                         menu_found = False

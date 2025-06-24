@@ -9,6 +9,13 @@ import pyautogui
 import pygetwindow as gw
 from playwright.sync_api import Page
 
+DEFAULT_WAIT_MS = 1000
+
+
+def wait(page: Page, ms: int = DEFAULT_WAIT_MS) -> None:
+    """Convenience wrapper for ``page.wait_for_timeout``."""
+    page.wait_for_timeout(ms)
+
 # 팝업 처리 상태를 추적하기 위한 전역 변수
 EXPECTED_POPUPS = 2
 _closed_popups = 0

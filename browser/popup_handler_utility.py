@@ -14,7 +14,7 @@ def setup_dialog_handler(page: Page, accept: bool = True) -> None:
 
 
 
-def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 500) -> bool:
+def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 1000) -> bool:
     """Search and close popups using event based waits."""
     selectors = [
         "text=닫기",
