@@ -294,7 +294,11 @@ def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> boo
 
     for _ in range(max(2, loops)):
         found = False
-        remove_overlay(page)
+        try:
+            if not page.locator("#topMenu").is_visible(timeout=1000):
+                remove_overlay(page)
+        except Exception:
+            remove_overlay(page)
         for frame in [page, *page.frames]:
             if hasattr(frame, "is_detached") and frame.is_detached():
                 continue
@@ -322,7 +326,7 @@ def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> boo
                             page.screenshot(path=f"popup_error_{ts}.png")
                         except Exception:
                             pass
-                        remove_overlay(page)
+                        remove_overlay(page, force=True)
         if not found:
             break
         handle_text_popups(page)

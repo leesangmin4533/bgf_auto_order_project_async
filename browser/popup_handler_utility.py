@@ -37,7 +37,11 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 500) -> bo
 
     for _ in range(max(2, loops)):
         found = False
-        remove_overlay(page)
+        try:
+            if not page.locator("#topMenu").is_visible(timeout=1000):
+                remove_overlay(page)
+        except Exception:
+            remove_overlay(page)
         for sel in selectors:
             try:
                 locs = page.locator(sel)
@@ -62,7 +66,7 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 500) -> bo
                         page.screenshot(path=f"popup_error_{ts}.png")
                     except Exception:
                         pass
-                    remove_overlay(page)
+                    remove_overlay(page, force=True)
         close_popup_windows(page, timeout=500)
         if not found:
             break
@@ -113,7 +117,11 @@ def close_layer_popup(
         if layer.count() == 0 or not layer.first.is_visible():
             return True
 
-        remove_overlay(page)
+        try:
+            if not page.locator("#topMenu").is_visible(timeout=1000):
+                remove_overlay(page)
+        except Exception:
+            remove_overlay(page)
 
         selectors = [
             close_selector,
