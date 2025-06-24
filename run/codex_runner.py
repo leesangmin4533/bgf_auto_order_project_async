@@ -1,5 +1,11 @@
 import json
 import os
+import sys
+
+# Add project root to ``sys.path`` so the script works from any location.
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 from playwright.sync_api import sync_playwright
 from utils import (
     inject_init_cleanup_script,
