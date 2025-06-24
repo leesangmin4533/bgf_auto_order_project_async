@@ -1,11 +1,11 @@
 """Main orchestration script."""
 
+import datetime
+import glob
 import json
 import os
-import glob
 import subprocess
 import sys
-import datetime
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
@@ -13,22 +13,18 @@ if PROJECT_ROOT not in sys.path:
 
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
+
+from auth import perform_login
+from browser.popup_handler import dialog_blocked, login_page_visible
+from browser.popup_handler_utility import close_all_popups, setup_dialog_handler
+from order import run_sales_analysis
 from utils import (
+    fallback_close_popups,
     inject_init_cleanup_script,
-    set_ignore_popup_failure,
     log,
+    set_ignore_popup_failure,
     update_instruction_state,
 )
-from browser.popup_handler_utility import (
-    setup_dialog_handler,
-    close_all_popups,
-)
-from browser.popup_handler import (
-    dialog_blocked,
-    login_page_visible,
-)
-from auth import perform_login
-from order import run_sales_analysis
 
 load_dotenv()
 
@@ -44,8 +40,14 @@ def load_structure() -> dict:
             structure_file = matches[0]
             log(f"{structure_file} 파일을 대신 사용합니다.")
         else:
-            log(f"{structure_file} 파일을 찾을 수 없습니다. 구조를 자동으로 생성합니다.")
-            subprocess.run([sys.executable, os.path.join(ROOT_DIR, "core", "build_structure.py")], check=True, cwd=ROOT_DIR)
+            log(
+                f"{structure_file} 파일을 찾을 수 없습니다. 구조를 자동으로 생성합니다."
+            )
+            subprocess.run(
+                [sys.executable, os.path.join(ROOT_DIR, "core", "build_structure.py")],
+                check=True,
+                cwd=ROOT_DIR,
+            )
     with open(structure_file, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -63,6 +65,7 @@ def main() -> None:
     config = load_config()
     wait_after_login = config.get("wait_after_login", 0)
     set_ignore_popup_failure(config.get("ignore_popup_failure", False))
+    popup_fail_count = 0
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
@@ -74,13 +77,21 @@ def main() -> None:
             if not perform_login(page, structure):
                 update_instruction_state("종료", "로그인 실패")
                 return
-            if wait_after_login:
-                page.wait_for_timeout(wait_after_login * 1000)
+
             update_instruction_state("팝업 처리 중")
             if not close_all_popups(page):
-                update_instruction_state("종료", "popup 닫기 실패")
+                popup_fail_count += 1
+                log("❌ 팝업 닫기 실패")
+                if popup_fail_count >= 3:
+                    fallback_close_popups(page)
+                    popup_fail_count = 0
+
+            page.wait_for_timeout(max(1000, wait_after_login * 1000))
+
+            if login_page_visible(page):
+                update_instruction_state("종료", "로그인 실패")
                 return
-            if dialog_blocked(page) or login_page_visible(page):
+            if dialog_blocked(page):
                 update_instruction_state("종료", "차단 메시지 감지")
                 return
             update_instruction_state("메뉴 진입")
