@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime
 import time
 from playwright.sync_api import Page
-from .popup_utils import remove_overlay
 from popup_text_handler import handle_popup_by_text
 
 import utils
@@ -164,8 +163,6 @@ def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> boo
             if closed_any:
                 break
 
-    if closed_any:
-        remove_overlay(page, force=True)
 
     for frame in [page, *page.frames]:
         for sel in selectors:

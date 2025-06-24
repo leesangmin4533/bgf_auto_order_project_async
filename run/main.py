@@ -84,9 +84,57 @@ def main() -> None:
             update_instruction_state("팝업 처리 중")
             log("close_all_popups() 호출", stage="팝업 처리")
             try:
-                if not close_all_popups(page):
+                popup_closed = close_all_popups(page)
+                if not popup_closed:
                     popup_fail_count += 1
                     log("❌ 팝업 닫기 실패", stage="팝업 처리")
+                    # 추가 닫기 버튼 탐색 시도
+                    alt_selectors = [
+                        "div:has-text('닫기')",
+                        "button:has-text('닫기')",
+                        "a:has-text('닫기')",
+                        "[class*='close']",
+                        "[id*='close']",
+                    ]
+                    alt_found = False
+                    for sel in alt_selectors:
+                        try:
+                            locs = page.locator(sel)
+                        except Exception:
+                            continue
+                        for i in range(locs.count()):
+                            btn = locs.nth(i)
+                            if btn.is_visible():
+                                try:
+                                    btn.click(timeout=0)
+                                    alt_found = True
+                                except Exception:
+                                    continue
+                        if alt_found:
+                            break
+                    if alt_found and close_all_popups(page):
+                        popup_closed = True
+                    if not popup_closed:
+                        # 메뉴 탐색 재시도
+                        menu_found = False
+                        for _ in range(3):
+                            try:
+                                page.wait_for_selector("#topMenu", timeout=3000)
+                                menu_found = True
+                                break
+                            except Exception:
+                                page.wait_for_timeout(1000)
+                        if not menu_found:
+                            update_instruction_state("종료", "팝업 처리 실패")
+                            if popup_fail_count >= 2:
+                                try:
+                                    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                                    with open(f"popup_fail_{ts}.html", "w", encoding="utf-8") as f:
+                                        f.write(page.content())
+                                    log(f"📄 페이지 HTML 저장됨: popup_fail_{ts}.html")
+                                except Exception as se:
+                                    log(f"페이지 저장 실패: {se}")
+                            return
                     if popup_fail_count >= 3:
                         fallback_close_popups(page)
                         popup_fail_count = 0
