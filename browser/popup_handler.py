@@ -1,5 +1,6 @@
 from __future__ import annotations
 import time
+import datetime
 from typing import Iterable
 from playwright.sync_api import Page, expect
 import utils
@@ -237,57 +238,21 @@ def handle_text_popups(page: Page) -> None:
             break
 
 
-def close_detected_popups(
-    page: Page, max_wait_sec: int = 30, max_loops: int = 3
-) -> bool:
-    """Repeatedly search and close popups until none remain or timeout.
-
-    The routine performs at least two search passes and at most ``max_loops``
-    passes to avoid infinite loops.
-    """
-    text_selectors = [
+def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> bool:
+    """Close visible popups using event based waits."""
+    selectors = [
         "text=닫기",
         "button:has-text('닫기')",
         "a:has-text('닫기')",
-        "[class*='btn_close']",
+        "[class*='close']",
         "[id*='close']",
         "button:has-text('✕')",
         "text=✕",
     ]
-    attr_selectors = [
-        "button[id*='close']",
-        "button[class*='close']",
-        "a[class*='close']",
-        "div[class*='close']",
-        "span[class*='close']",
-        "[role='button'][id*='close']",
-        "[role='button'][class*='close']",
-    ]
-    selectors = text_selectors + attr_selectors
 
-    # 디버깅을 위해 현재 페이지의 HTML을 저장
-    try:
-        with open("popup_debug.html", "w", encoding="utf-8") as f:
-            f.write(page.content())
-    except Exception as e:
-        utils.log(f"팝업 디버그 HTML 저장 실패: {e}")
-
-    end = time.time() + max_wait_sec
-    checks = 0
-    loops = 0
-    while loops < max_loops and (time.time() < end or loops < 2):
-        if "차단되었습니다" in page.content():
-            utils.log("❌ 페이지에서 차단 문구 감지")
-            return False
-        if dialog_blocked(page):
-            utils.log("❌ 브라우저에서 추가 대화 차단 메시지 감지")
-            return False
-        if login_page_visible(page):
-            utils.log("❌ 로그인 페이지로 돌아감 - 세션 만료 추정")
-            return False
-        found = close_all_popups(page)
-        targets = [page, *page.frames]
-        for frame in targets:
+    for _ in range(max(2, loops)):
+        found = False
+        for frame in [page, *page.frames]:
             if hasattr(frame, "is_detached") and frame.is_detached():
                 continue
             for sel in selectors:
@@ -298,43 +263,37 @@ def close_detected_popups(
                     continue
                 for i in range(locs.count()):
                     btn = locs.nth(i)
-                    if btn.is_visible():
-                        try:
+                    if not btn.is_visible():
+                        continue
+                    try:
+                        frame.once("dialog", lambda d: d.accept())
+                        with frame.expect_popup(timeout=500) as pop:
                             btn.click(timeout=0)
-                            expect(btn).not_to_be_visible(timeout=2000)
-                            found = True
-                        except Exception as e:
-                            utils.log(f"닫기 버튼 클릭 실패: {e}")
+                        if pop.value:
+                            pop.value.close()
+                        found = True
+                    except Exception as e:
+                        utils.log(f"닫기 버튼 클릭 실패: {e}")
+                        try:
+                            ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                            page.screenshot(path=f"popup_error_{ts}.png")
+                        except Exception:
+                            pass
+        if not found:
+            break
         handle_text_popups(page)
-        checks += 1
-        loops += 1
-        visible = False
-        for frame in targets:
-            if hasattr(frame, "is_detached") and frame.is_detached():
-                continue
-            for sel in selectors:
-                try:
-                    locs = frame.locator(sel)
-                except Exception:
-                    continue
-                for i in range(locs.count()):
-                    if locs.nth(i).is_visible():
-                        visible = True
-                        break
-                if visible:
-                    break
-            if visible:
-                break
-        if not visible:
-            utils.popup_handled = True
-            utils.log(f"✅ 팝업 처리 완료 ({checks}회 확인)")
-            return True
+        time.sleep(wait_ms / 1000)
+
+    for frame in [page, *page.frames]:
         for sel in selectors:
             try:
-                page.wait_for_selector(sel, timeout=1000)
-                break
+                locs = frame.locator(sel)
             except Exception:
                 continue
-    utils.popup_handled = False
-    utils.log("❌ 팝업 닫기 시간 초과")
-    return False
+            for i in range(locs.count()):
+                if locs.nth(i).is_visible():
+                    utils.popup_handled = False
+                    return False
+    utils.popup_handled = True
+    utils.log("✅ 팝업 처리 완료")
+    return True
