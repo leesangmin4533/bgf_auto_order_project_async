@@ -1,9 +1,6 @@
 import os
-import datetime
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
-
-from sales_analysis.navigate_sales_ratio import navigate_sales_ratio
 
 load_dotenv()
 
@@ -63,6 +60,7 @@ def close_popups(page, loops: int = 2) -> bool:
 
 
 def main():
+    import datetime
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
@@ -87,7 +85,11 @@ def main():
             return
 
         if datetime.datetime.today().weekday() == 0:
-            navigate_sales_ratio(page)
+            nav = __import__(
+                "sales_analysis.navigate_sales_ratio",
+                fromlist=["navigate_sales_ratio"],
+            )
+            nav.navigate_sales_ratio(page)
 
         browser.close()
 
