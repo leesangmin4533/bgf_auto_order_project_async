@@ -5,7 +5,7 @@ import utils
 from .popup_handler import setup_dialog_handler as _setup_dialog_handler
 
 from .popup_utils import remove_overlay
-
+from popup_text_handler import handle_popup_by_text
 
 
 def setup_dialog_handler(page: Page, accept: bool = True) -> None:
@@ -37,11 +37,6 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 500) -> bo
 
     for _ in range(max(2, loops)):
         found = False
-        try:
-            if not page.locator("#topMenu").is_visible(timeout=1000):
-                remove_overlay(page)
-        except Exception:
-            remove_overlay(page)
         for sel in selectors:
             try:
                 locs = page.locator(sel)
@@ -117,12 +112,6 @@ def close_layer_popup(
         if layer.count() == 0 or not layer.first.is_visible():
             return True
 
-        try:
-            if not page.locator("#topMenu").is_visible(timeout=1000):
-                remove_overlay(page)
-        except Exception:
-            remove_overlay(page)
-
         selectors = [
             close_selector,
             "text=닫기",
@@ -168,13 +157,21 @@ def close_layer_popup(
             pass
         return False
 
+
 from .popup_handler import close_detected_popups
+
 
 def close_all_popups(page: Page, loops: int = 3) -> bool:
     """Unified popup closing routine."""
-    success = close_all_popups_event(page, loops=loops)
-    if not success:
-        success = close_detected_popups(page, loops=loops)
+    success = False
+    if handle_popup_by_text(page):
+        utils.log("✅ 팝업 규칙 기반 닫기 완료")
+        success = True
+    else:
+        utils.log("➡️ 규칙 외 팝업 처리 fallback 진행")
+        success = close_all_popups_event(page, loops=loops)
+        if not success:
+            success = close_detected_popups(page, loops=loops)
     if not success:
         try:
             ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
