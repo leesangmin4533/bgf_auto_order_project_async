@@ -1,7 +1,7 @@
 import datetime
 from pathlib import Path
 from playwright.sync_api import Page, expect
-from utils import popups_handled, log
+from utils import popups_handled, log, wait
 
 
 def set_month_date_range(page: Page) -> tuple[str, str]:
@@ -13,15 +13,23 @@ def set_month_date_range(page: Page) -> tuple[str, str]:
 
     start_input = page.locator("input[id$='calFromDay.calendaredit:input']")
     if start_input.count() > 0:
+        wait(page)
         start_input.click()
+        wait(page)
         start_input.fill(start_str)
+        wait(page)
         start_input.press("Enter")
+        wait(page)
 
     end_input = page.locator("input[id$='calToDay.calendaredit:input']")
     if end_input.count() > 0:
+        wait(page)
         end_input.click()
+        wait(page)
         end_input.fill(end_str)
+        wait(page)
         end_input.press("Enter")
+        wait(page)
 
     return start_str, end_str
 
@@ -36,8 +44,11 @@ def extract_sales_detail(page: Page) -> Path:
 
     search_btn = page.locator("div.nexacontentsbox:has-text('조 회')")
     if search_btn.count() > 0:
+        wait(page)
         search_btn.first.click()
+        wait(page)
         page.wait_for_load_state("networkidle")
+        wait(page)
     else:
         log("⚠️ 조회 버튼을 찾을 수 없습니다")
 
@@ -54,7 +65,9 @@ def extract_sales_detail(page: Page) -> Path:
         for i in range(row_count):
             row = left_rows.nth(i)
             code = row.inner_text().strip()
+            wait(page)
             row.click()
+            wait(page)
             expect(page.locator("#gdDetail div[class^='gridrow_']")).to_be_visible(timeout=3000)
 
             container = page.locator("div[id*='gdDetail']")
@@ -72,6 +85,7 @@ def extract_sales_detail(page: Page) -> Path:
                 if text:
                     f.write(text + "\n")
             f.write("\n")
+            wait(page)
 
     if total_details > 0:
         log(f"✅ 매출상세 데이터 저장 → {out_path}")
