@@ -157,10 +157,11 @@ def close_all_popups(page: Page, loops: int = 3) -> bool:
         success = True
     else:
         utils.log("➡️ 규칙 외 팝업 처리 fallback 진행")
-        remove_overlay(page, force=True)
         success = close_all_popups_event(page, loops=loops)
         if not success:
             success = close_detected_popups(page, loops=loops)
+    if success:
+        remove_overlay(page, force=True)
     if not success:
         try:
             ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
