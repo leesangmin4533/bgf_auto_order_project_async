@@ -38,6 +38,8 @@ def handle_popup_by_text(page: Page) -> bool:
             log(f"📌 팝업 탐지됨: '{popup_title}' → 규칙 적용")
             try:
                 rule["action"](page, rule["selector"])
+                page.wait_for_timeout(3000)
+                log("⏱️ 팝업 닫기 후 3초간 안정화 대기")
                 return True
             except Exception as e:
                 log(f"❌ 팝업 닫기 실패: {e}")
