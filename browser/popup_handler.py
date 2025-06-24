@@ -103,6 +103,7 @@ def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> boo
         "a:has-text('닫기')",
         "[class*='close']",
         "[id*='close']",
+        "div[id*='btn_close']",
         "button:has-text('✕')",
         "text=✕",
     ]
@@ -144,6 +145,26 @@ def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> boo
         time.sleep(wait_ms / 1000)
 
     if not closed_any:
+        # 팝업 버튼 탐색 실패 시 추가로 div/button 검색 시도
+        alt_selectors = ["div[id*='btn_close']", "div:has-text('닫기')", "button:has-text('닫기')"]
+        for sel in alt_selectors:
+            try:
+                locs = page.locator(sel)
+            except Exception:
+                continue
+            for i in range(locs.count()):
+                btn = locs.nth(i)
+                if btn.is_visible():
+                    try:
+                        btn.click(timeout=0)
+                        closed_any = True
+                        break
+                    except Exception:
+                        continue
+            if closed_any:
+                break
+
+    if closed_any:
         remove_overlay(page, force=True)
 
     for frame in [page, *page.frames]:

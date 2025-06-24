@@ -19,12 +19,18 @@ POPUP_RULES = [
     },
 ]
 
+EXCLUDE_TEXTS = ["Copyright", "BGF Retail"]
+
 
 def handle_popup_by_text(page: Page) -> bool:
     try:
         popup_title = page.locator("div[id$='Static00:text']").inner_text(timeout=1000)
     except Exception:
         log("팝업 제목 탐지 실패")
+        return False
+
+    if any(ex in popup_title for ex in EXCLUDE_TEXTS):
+        log("⏩ 제외 팝업으로 판단 - 무시")
         return False
 
     for rule in POPUP_RULES:
