@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 from utils import setup_dialog_handler, inject_init_cleanup_script
 
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 ATTRIBUTE_ORDER = ["id", "name", "placeholder", "aria-label"]
 
@@ -24,7 +26,7 @@ def _build_selector(element) -> Optional[str]:
     return None
 
 
-def extract_structure(url: str, output_path: str = "page_structure.json") -> None:
+def extract_structure(url: str, output_path: str = os.path.join(ROOT_DIR, "config", "page_structure.json")) -> None:
     """Render URL with Playwright and extract login structure to JSON."""
     # Support local files without scheme
     if os.path.exists(url):
@@ -59,5 +61,5 @@ def extract_structure(url: str, output_path: str = "page_structure.json") -> Non
 
 
 if __name__ == "__main__":
-    target_url = os.environ.get("LOGIN_URL", "sample_login_page.html")
+    target_url = os.environ.get("LOGIN_URL", os.path.join(ROOT_DIR, "sample_login_page.html"))
     extract_structure(target_url)

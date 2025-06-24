@@ -1,7 +1,7 @@
 import time
 from playwright.sync_api import Page
 import utils
-from handlers.popup_handler import setup_dialog_handler as _setup_dialog_handler
+from .popup_handler import setup_dialog_handler as _setup_dialog_handler
 
 
 def setup_dialog_handler(page: Page, accept: bool = True) -> None:

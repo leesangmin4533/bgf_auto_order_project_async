@@ -5,7 +5,7 @@ from utils import (
     inject_init_cleanup_script,
     popups_handled,
 )
-from handlers.popup_handler import (
+from browser.popup_handler import (
     setup_dialog_handler,
     close_detected_popups,
 )
@@ -15,15 +15,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
 
 
 def load_config() -> dict:
-    with open(os.path.join(BASE_DIR, "runtime_config.json"), "r", encoding="utf-8") as f:
+    config_path = os.path.join(ROOT_DIR, "config", "runtime_config.json")
+    with open(config_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def load_structure() -> dict:
-    with open(os.path.join(BASE_DIR, "page_structure.json"), "r", encoding="utf-8") as f:
+    structure_path = os.path.join(ROOT_DIR, "config", "page_structure.json")
+    with open(structure_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 

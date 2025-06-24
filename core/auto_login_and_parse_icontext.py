@@ -1,8 +1,10 @@
 import json
+import os
 from bs4 import BeautifulSoup
 
-INPUT_HTML = "sample_login_page.html"
-OUTPUT_JSON = "page_structure.json"
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+INPUT_HTML = os.path.join(ROOT_DIR, "sample_login_page.html")
+OUTPUT_JSON = os.path.join(ROOT_DIR, "config", "page_structure.json")
 
 def parse_structure(html_path: str = INPUT_HTML) -> None:
     with open(html_path, "r", encoding="utf-8") as f:

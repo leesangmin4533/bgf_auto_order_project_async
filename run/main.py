@@ -17,6 +17,7 @@ from sales_analysis.middle_category_product_extractor import (
 load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
@@ -25,8 +26,8 @@ from utils import (
     set_ignore_popup_failure,
     log,
 )
-from popup_handler_utility import setup_dialog_handler, close_layer_popup
-from handlers.popup_handler import (
+from browser.popup_handler_utility import setup_dialog_handler, close_layer_popup
+from browser.popup_handler import (
     close_detected_popups,
     dialog_blocked,
     login_page_visible,
@@ -39,7 +40,7 @@ def main() -> None:
     url = "https://store.bgfretail.com/websrc/deploy/index.html"
 
     # Load runtime configuration for additional settings
-    config_path = os.path.join(BASE_DIR, "runtime_config.json")
+    config_path = os.path.join(ROOT_DIR, "config", "runtime_config.json")
     with open(config_path, "r", encoding="utf-8") as f:
         runtime_config = json.load(f)
 
@@ -51,7 +52,7 @@ def main() -> None:
     ignore_popup_failure = runtime_config.get("ignore_popup_failure", False)
     set_ignore_popup_failure(ignore_popup_failure)
 
-    structure_file = os.path.join(BASE_DIR, "page_structure.json")
+    structure_file = os.path.join(ROOT_DIR, "config", "page_structure.json")
     if not os.path.exists(structure_file):
         # glob으로 유사한 JSON 파일을 탐색
         matches = glob.glob(os.path.join(BASE_DIR, "*structure*.json"))
@@ -61,7 +62,11 @@ def main() -> None:
         else:
             log(f"{structure_file} 파일을 찾을 수 없습니다. 구조를 자동으로 생성합니다.")
             try:
-                subprocess.run([sys.executable, os.path.join(BASE_DIR, "build_structure.py")], check=True, cwd=BASE_DIR)
+                subprocess.run(
+                    [sys.executable, os.path.join(ROOT_DIR, "core", "build_structure.py")],
+                    check=True,
+                    cwd=ROOT_DIR,
+                )
             except Exception as e:
                 log(f"구조 파일 생성 실패: {e}")
                 return
