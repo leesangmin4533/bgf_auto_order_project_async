@@ -11,10 +11,8 @@ from utils import (
     inject_init_cleanup_script,
     popups_handled,
 )
-from browser.popup_handler import (
-    setup_dialog_handler,
-    close_detected_popups,
-)
+from browser.popup_handler import setup_dialog_handler
+from browser.popup_handler_utility import close_all_popups
 from dotenv import load_dotenv
 
 # Load environment variables from .env
@@ -70,7 +68,7 @@ def run() -> None:
                 page.wait_for_timeout(wait_after_login * 1000)
 
             if not popups_handled():
-                if not close_detected_popups(page):
+                if not close_all_popups(page):
                     print("⚠️ 일부 팝업이 닫히지 않았으나 계속 진행합니다")
                 else:
                     print("✅ 모든 팝업 처리 완료")

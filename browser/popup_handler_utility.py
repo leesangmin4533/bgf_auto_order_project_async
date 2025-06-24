@@ -1,4 +1,3 @@
-import time
 import datetime
 from playwright.sync_api import Page, TimeoutError
 import utils
@@ -13,16 +12,7 @@ def setup_dialog_handler(page: Page, accept: bool = True) -> None:
     _setup_dialog_handler(page, auto_accept=accept)
 
 
-def close_popup_windows(page: Page, timeout: int = 1000) -> None:
-    """Close popup windows spawned from the current page."""
-    while True:
-        try:
-            popup = page.wait_for_event("popup", timeout=timeout).value
-            popup.wait_for_load_state()
-            popup.close()
-            utils.log("새 창 팝업 닫힘")
-        except TimeoutError:
-            break
+
 
 
 def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 500) -> bool:
@@ -61,8 +51,6 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 500) -> bo
                         page.screenshot(path=f"popup_error_{ts}.png")
                     except Exception:
                         pass
-                    remove_overlay(page, force=True)
-        close_popup_windows(page, timeout=500)
         if not found:
             break
         page.wait_for_timeout(wait_ms)
@@ -169,6 +157,7 @@ def close_all_popups(page: Page, loops: int = 3) -> bool:
         success = True
     else:
         utils.log("➡️ 규칙 외 팝업 처리 fallback 진행")
+        remove_overlay(page, force=True)
         success = close_all_popups_event(page, loops=loops)
         if not success:
             success = close_detected_popups(page, loops=loops)
