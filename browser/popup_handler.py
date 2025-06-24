@@ -5,6 +5,7 @@ import time
 from typing import Iterable
 
 from playwright.sync_api import Page, expect
+from .popup_handler_utility import remove_overlay
 
 import utils
 
@@ -274,6 +275,7 @@ def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> boo
 
     for _ in range(max(2, loops)):
         found = False
+        remove_overlay(page)
         for frame in [page, *page.frames]:
             if hasattr(frame, "is_detached") and frame.is_detached():
                 continue
@@ -301,6 +303,7 @@ def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> boo
                             page.screenshot(path=f"popup_error_{ts}.png")
                         except Exception:
                             pass
+                        remove_overlay(page)
         if not found:
             break
         handle_text_popups(page)

@@ -1,9 +1,25 @@
 import time
 import datetime
-from playwright.sync_api import Page
-from playwright.sync_api import TimeoutError
+from playwright.sync_api import Page, TimeoutError
 import utils
 from .popup_handler import setup_dialog_handler as _setup_dialog_handler
+
+
+def remove_overlay(page: Page, selector: str = "#nexacontainer", timeout: int = 3000) -> None:
+    """Wait for overlay to disappear and remove it if still visible."""
+    try:
+        overlay = page.locator(selector)
+        if overlay.count() > 0 and overlay.first.is_visible():
+            try:
+                overlay.first.wait_for(state="hidden", timeout=timeout)
+            except TimeoutError:
+                utils.log(f"❗ 오버레이 계속 표시되어 remove() 시도: {selector}")
+                try:
+                    overlay.evaluate("el => el.remove()")
+                except Exception as e:  # pragma: no cover - logging only
+                    utils.log(f"오버레이 제거 실패: {e}")
+    except Exception as e:  # pragma: no cover - logging only
+        utils.log(f"오버레이 감지 오류: {e}")
 
 
 def setup_dialog_handler(page: Page, accept: bool = True) -> None:
@@ -35,6 +51,7 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 500) -> bo
 
     for _ in range(max(2, loops)):
         found = False
+        remove_overlay(page)
         for sel in selectors:
             try:
                 locs = page.locator(sel)
@@ -59,6 +76,7 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 500) -> bo
                         page.screenshot(path=f"popup_error_{ts}.png")
                     except Exception:
                         pass
+                    remove_overlay(page)
         close_popup_windows(page, timeout=500)
         if not found:
             break
@@ -108,6 +126,8 @@ def close_layer_popup(
         layer = page.locator(popup_selector)
         if layer.count() == 0 or not layer.first.is_visible():
             return True
+
+        remove_overlay(page)
 
         selectors = [
             close_selector,
