@@ -432,3 +432,24 @@ def process_popups_once(page: Page, *, force: bool = False) -> bool:
     result = handle_popup(page)
     _processed_popups = True
     return result
+
+from pathlib import Path
+
+def update_instruction_state(step: str, failure: str | None = None) -> None:
+    """Update progress status in codex_instruction.txt."""
+    instr_path = Path(__file__).resolve().parent.parent / "instructions" / "codex_instruction.txt"
+    if not instr_path.exists():
+        return
+    try:
+        lines = instr_path.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return
+    new_lines = []
+    for line in lines:
+        if line.startswith("진행단계"):
+            new_lines.append(f"진행단계 = {step}")
+        elif line.startswith("마지막실패") and failure is not None:
+            new_lines.append(f"마지막실패 = {failure}")
+        else:
+            new_lines.append(line)
+    instr_path.write_text("\n".join(new_lines), encoding="utf-8")

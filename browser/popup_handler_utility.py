@@ -153,3 +153,19 @@ def close_layer_popup(
         except Exception:
             pass
         return False
+
+from .popup_handler import close_detected_popups
+
+def close_all_popups(page: Page, loops: int = 3) -> bool:
+    """Unified popup closing routine."""
+    success = close_all_popups_event(page, loops=loops)
+    if not success:
+        success = close_detected_popups(page, loops=loops)
+    if not success:
+        try:
+            ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            page.screenshot(path=f"popup_fail_{ts}.png")
+        except Exception:
+            pass
+        utils.log("❌ 팝업 처리 실패")
+    return success
