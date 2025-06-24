@@ -3,7 +3,10 @@ from __future__ import annotations
 import datetime
 import time
 from playwright.sync_api import Page
-import utils
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import common as utils
 from popup_text_handler import handle_popup_by_text
 from . import popup_utils
 

@@ -1,6 +1,9 @@
 import datetime
 from playwright.sync_api import Page, TimeoutError
-import utils
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import common as utils
 from .popup_handler import (
     setup_dialog_handler as _setup_dialog_handler,
     register_dialog_handler,
