@@ -69,115 +69,129 @@ def main() -> None:
     set_ignore_popup_failure(config.get("ignore_popup_failure", False))
     popup_fail_count = 0
 
+    def launch(pw):
+        br = pw.chromium.launch(headless=False)
+        pg = br.new_page()
+        inject_init_cleanup_script(pg)
+        setup_dialog_handler(pg)
+        return br, pg
+
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
-        inject_init_cleanup_script(page)
-        setup_dialog_handler(page)
+        browser, page = launch(p)
         normal_exit = False
+        restarted = False
         try:
-            log("[로그인 단계] ➡️ perform_login() 호출")
-            if not perform_login(page, structure):
-                log("[로그인 단계] ❌ perform_login 실패 → 로그인 종료")
-                update_instruction_state("종료", "로그인 실패")
-                return
+            while True:
+                log("[로그인 단계] ➡️ perform_login() 호출")
+                if not perform_login(page, structure):
+                    log("[로그인 단계] ❌ perform_login 실패 → 로그인 종료")
+                    update_instruction_state("종료", "로그인 실패")
+                    return
 
-            wait(page)
+                wait(page)
 
-            update_instruction_state("팝업 처리 중")
-            log("close_all_popups() 호출", stage="팝업 처리")
-            wait(page)
-            try:
-                register_dialog_handler(page)
-                popup_closed = close_all_popups(page)
-                page.wait_for_timeout(2000)
-                if not popup_closed:
-                    popup_fail_count += 1
-                    log("❌ 팝업 닫기 실패", stage="팝업 처리")
-                    # 추가 닫기 버튼 탐색 시도
-                    alt_selectors = [
-                        "div:has-text('닫기')",
-                        "button:has-text('닫기')",
-                        "a:has-text('닫기')",
-                        "[class*='close']",
-                        "[id*='close']",
-                    ]
+                update_instruction_state("팝업 처리 중")
+                log("close_all_popups() 호출", stage="팝업 처리")
+                wait(page)
+                try:
                     register_dialog_handler(page)
+                    popup_closed = close_all_popups(page)
                     page.wait_for_timeout(2000)
-                    alt_found = False
-                    for sel in alt_selectors:
-                        try:
-                            locs = page.locator(sel)
-                        except Exception:
-                            continue
-                        for i in range(locs.count()):
-                            btn = locs.nth(i)
-                            if btn.is_visible():
-                                try:
-                                    btn.click(timeout=0)
-                                    alt_found = True
-                                except Exception:
-                                    continue
-                        if alt_found:
-                            break
-                    if alt_found and close_all_popups(page):
-                        popup_closed = True
-                        page.wait_for_timeout(2000)
                     if not popup_closed:
-                        # 메뉴 탐색 재시도
-                        menu_found = False
-                        for _ in range(3):
+                        popup_fail_count += 1
+                        log("❌ 팝업 닫기 실패", stage="팝업 처리")
+                        alt_selectors = [
+                            "div:has-text('닫기')",
+                            "button:has-text('닫기')",
+                            "a:has-text('닫기')",
+                            "[class*='close']",
+                            "[id*='close']",
+                        ]
+                        register_dialog_handler(page)
+                        page.wait_for_timeout(2000)
+                        alt_found = False
+                        for sel in alt_selectors:
                             try:
-                                page.wait_for_selector("#topMenu", timeout=3000)
-                                menu_found = True
-                                break
+                                locs = page.locator(sel)
                             except Exception:
-                                page.wait_for_timeout(1000)
-                        if not menu_found:
-                            update_instruction_state("종료", "팝업 처리 실패")
-                            if popup_fail_count >= 2:
+                                continue
+                            for i in range(locs.count()):
+                                btn = locs.nth(i)
+                                if btn.is_visible():
+                                    try:
+                                        btn.click(timeout=0)
+                                        alt_found = True
+                                    except Exception:
+                                        continue
+                            if alt_found:
+                                break
+                        if alt_found and close_all_popups(page):
+                            popup_closed = True
+                            page.wait_for_timeout(2000)
+                        if not popup_closed:
+                            menu_found = False
+                            for _ in range(3):
                                 try:
-                                    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                                    with open(f"popup_fail_{ts}.html", "w", encoding="utf-8") as f:
-                                        f.write(page.content())
-                                    log(f"📄 페이지 HTML 저장됨: popup_fail_{ts}.html")
-                                except Exception as se:
-                                    log(f"페이지 저장 실패: {se}")
-                            return
-                    if popup_fail_count >= 3:
-                        fallback_close_popups(page)
-                        popup_fail_count = 0
-            except Exception as e:
-                handle_exception(page, "팝업처리", e)
-                update_instruction_state("종료", "팝업 처리 중 예외")
-                return
+                                    page.wait_for_selector("#topMenu", timeout=3000)
+                                    menu_found = True
+                                    break
+                                except Exception:
+                                    page.wait_for_timeout(1000)
+                            if not menu_found:
+                                update_instruction_state("종료", "팝업 처리 실패")
+                                if popup_fail_count >= 2:
+                                    try:
+                                        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                                        with open(f"popup_fail_{ts}.html", "w", encoding="utf-8") as f:
+                                            f.write(page.content())
+                                        log(f"📄 페이지 HTML 저장됨: popup_fail_{ts}.html")
+                                    except Exception as se:
+                                        log(f"페이지 저장 실패: {se}")
+                                return
+                        if popup_fail_count >= 3:
+                            fallback_close_popups(page)
+                            popup_fail_count = 0
+                except Exception as e:
+                    handle_exception(page, "팝업처리", e)
+                    update_instruction_state("종료", "팝업 처리 중 예외")
+                    return
 
-            page.wait_for_timeout(2000)
-            try:
-                page.wait_for_selector("#topMenu", timeout=10000)
-            except Exception as e:
-                log("⚠️ 메뉴 로딩 실패 - #topMenu 미감지", stage="로그인후요소")
-                handle_exception(page, "로그인후요소", e)
-            else:
-                log("✅ 메뉴 로딩 완료", stage="로그인후요소")
+                page.wait_for_timeout(2000)
+                try:
+                    page.wait_for_selector("#topMenu", timeout=10000)
+                except Exception as e:
+                    log("⚠️ 메뉴 로딩 실패 - #topMenu 미감지", stage="로그인후요소")
+                    handle_exception(page, "로그인후요소", e)
+                else:
+                    log("✅ 메뉴 로딩 완료", stage="로그인후요소")
 
-            page.wait_for_timeout(max(1000, wait_after_login * 1000))
+                page.wait_for_timeout(max(1000, wait_after_login * 1000))
 
-            if not is_logged_in(page):
-                update_instruction_state("종료", "로그인 후 요소 확인 실패")
-                return
-            if dialog_blocked(page):
-                update_instruction_state("종료", "차단 메시지 감지")
-                return
-            update_instruction_state("메뉴 진입")
-            try:
-                run_sales_analysis(page)
-            except Exception as e:
-                handle_exception(page, "메뉴진입", e)
-                update_instruction_state("종료", "메뉴 이동 중 예외")
-                return
-            normal_exit = True
-            update_instruction_state("완료")
+                if not is_logged_in(page):
+                    update_instruction_state("종료", "로그인 후 요소 확인 실패")
+                    return
+                if dialog_blocked(page):
+                    log("❌ 대화 차단 감지 → 컨텍스트 재시작", stage="다이얼로그")
+                    if restarted:
+                        update_instruction_state("종료", "차단 메시지 감지")
+                        return
+                    try:
+                        browser.close()
+                    except Exception:
+                        pass
+                    browser, page = launch(p)
+                    restarted = True
+                    continue
+                update_instruction_state("메뉴 진입")
+                try:
+                    run_sales_analysis(page)
+                except Exception as e:
+                    handle_exception(page, "메뉴진입", e)
+                    update_instruction_state("종료", "메뉴 이동 중 예외")
+                    return
+                normal_exit = True
+                update_instruction_state("완료")
+                break
         except Exception as e:
             handle_exception(page, "메인", e)
             update_instruction_state("종료", str(e))
