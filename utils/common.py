@@ -162,6 +162,7 @@ def setup_dialog_handler(page, auto_accept: bool = True) -> None:
                     dialog.dismiss()
                 except Exception as e:
                     print(f"dialog.dismiss 오류: {e}")
+            time.sleep(2)
             print(f"자동 다이얼로그 처리: {dialog.message}")
         except Exception as e:
             print(f"다이얼로그 처리 오류: {e}")
@@ -330,7 +331,7 @@ def close_popups(
                         continue
                     try:
                         btn.click(timeout=0)
-                        frame.wait_for_timeout(300)
+                        frame.wait_for_timeout(2000)
                         closed += 1
                         loop_closed += 1
                     except Exception as e:  # pragma: no cover - logging only
