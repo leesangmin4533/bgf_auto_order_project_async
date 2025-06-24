@@ -1,6 +1,6 @@
 # Utility functions for popup handling
 from playwright.sync_api import Page
-from utils import log
+from common import log
 import time
 
 _last_dialog_message: str | None = None
