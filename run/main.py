@@ -1,5 +1,12 @@
 import datetime
+import sys
+from pathlib import Path
 from playwright.sync_api import sync_playwright
+
+# Ensure the project root is in the module search path so "login" package is found
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from login.login_handler import perform_login
 
