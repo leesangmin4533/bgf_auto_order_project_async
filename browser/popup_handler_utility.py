@@ -3,7 +3,6 @@ from playwright.sync_api import Page, TimeoutError
 import utils
 from .popup_handler import setup_dialog_handler as _setup_dialog_handler
 
-from .popup_utils import remove_overlay
 from popup_text_handler import handle_popup_by_text
 
 
@@ -160,8 +159,6 @@ def close_all_popups(page: Page, loops: int = 3) -> bool:
         success = close_all_popups_event(page, loops=loops)
         if not success:
             success = close_detected_popups(page, loops=loops)
-    if success:
-        remove_overlay(page, force=True)
     if not success:
         try:
             ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
