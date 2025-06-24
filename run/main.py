@@ -1,7 +1,9 @@
 import datetime
-import sys
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Ensure the project root is in the module search path so "login" package is found
 ROOT_DIR = Path(__file__).resolve().parent.parent
