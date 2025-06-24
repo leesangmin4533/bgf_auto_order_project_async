@@ -30,6 +30,13 @@ POPUP_DEFINITIONS = [
             "#mainframe\\.HFrameSet00\\.VFrameSet00\\.FrameSet\\.WorkFrame\\.STZZ120_P0\\.form\\.btn_close:icontext",
         ],
     },
+    {
+        "name": "재택 안내 팝업",
+        "container_selector": "#popupDiv",
+        "close_selectors": [
+            "button:has-text('닫기')",
+        ],
+    },
 ]
 
 # 메시지 차단 감지용 선택자 목록
