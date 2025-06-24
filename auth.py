@@ -25,6 +25,10 @@ def perform_login(page: Page, structure: dict) -> bool:
     page.keyboard.type(user_pw)
     page.locator(structure["login_button"]).click()
     page.wait_for_load_state("networkidle")
+    try:
+        page.wait_for_selector("#topMenu", timeout=5000)
+    except Exception:
+        pass
 
     if "login" in page.url or not page.locator("#topMenu").is_visible():
         log("❌ 로그인 실패")

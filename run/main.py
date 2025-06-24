@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
 from auth import perform_login
-from browser.popup_handler import dialog_blocked, login_page_visible
+from browser.popup_handler import dialog_blocked, is_logged_in
 from browser.popup_handler_utility import close_all_popups, setup_dialog_handler
 from order import run_sales_analysis
 from utils import (
@@ -88,8 +88,8 @@ def main() -> None:
 
             page.wait_for_timeout(max(1000, wait_after_login * 1000))
 
-            if login_page_visible(page):
-                update_instruction_state("종료", "로그인 실패")
+            if not is_logged_in(page):
+                update_instruction_state("종료", "로그인 후 요소 확인 실패")
                 return
             if dialog_blocked(page):
                 update_instruction_state("종료", "차단 메시지 감지")
