@@ -1,8 +1,11 @@
 import os
+import sys
 from playwright.sync_api import Page
 from dotenv import load_dotenv
 from popup_handler import is_logged_in
 from common import log
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 load_dotenv()
 ID = os.getenv("LOGIN_ID")
