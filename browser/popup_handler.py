@@ -73,6 +73,7 @@ def register_dialog_handler(page: Page) -> None:
             _last_dialog_message = msg
             utils.log(f"🟡 다이얼로그 감지됨: '{msg}'")
             dialog.accept()
+            time.sleep(2)
         except Exception as e:  # pragma: no cover - logging only
             utils.log(f"❌ 다이얼로그 처리 실패 또는 중복 처리 시도됨: {e}")
 
@@ -118,6 +119,7 @@ def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
                     dialog.dismiss()
                 except Exception as e:
                     utils.log(f"dialog.dismiss 오류: {e}")
+            time.sleep(2)
             utils.log(f"자동 다이얼로그 처리: {msg}")
         except Exception as e:
             utils.log(f"다이얼로그 처리 오류: {e}")

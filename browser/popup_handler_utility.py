@@ -44,6 +44,7 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 1000) -> b
                         btn.click(timeout=0)
                     if pop.value:
                         pop.value.close()
+                    page.wait_for_timeout(2000)
                     found = True
                     closed_any = True
                 except TimeoutError:
@@ -71,6 +72,7 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 1000) -> b
                 if btn.is_visible():
                     try:
                         btn.click(timeout=0)
+                        page.wait_for_timeout(2000)
                         found = True
                         break
                     except Exception:
@@ -140,6 +142,7 @@ def close_layer_popup(
                         btn.first.click()
                     if pop_info.value:
                         pop_info.value.close()
+                    page.wait_for_timeout(2000)
                     clicked = True
                     break
             except Exception as e:
@@ -150,6 +153,7 @@ def close_layer_popup(
         try:
             layer.first.wait_for(state="hidden", timeout=timeout)
             utils.log("✅ 레이어 팝업 닫힘")
+            page.wait_for_timeout(2000)
             return True
         except TimeoutError:
             utils.log("❌ 레이어 팝업 닫기 시간 초과")
