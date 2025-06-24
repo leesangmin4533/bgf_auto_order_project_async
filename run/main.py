@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
 from auth import perform_login
-from browser.popup_handler import dialog_blocked, is_logged_in
+from browser.popup_handler import dialog_blocked, is_logged_in, register_dialog_handler
 from browser.popup_handler_utility import close_all_popups, setup_dialog_handler
 from order import run_sales_analysis
 from utils import (
@@ -88,8 +88,9 @@ def main() -> None:
             log("close_all_popups() 호출", stage="팝업 처리")
             wait(page)
             try:
+                register_dialog_handler(page)
                 popup_closed = close_all_popups(page)
-                wait(page)
+                page.wait_for_timeout(2000)
                 if not popup_closed:
                     popup_fail_count += 1
                     log("❌ 팝업 닫기 실패", stage="팝업 처리")
@@ -101,6 +102,8 @@ def main() -> None:
                         "[class*='close']",
                         "[id*='close']",
                     ]
+                    register_dialog_handler(page)
+                    page.wait_for_timeout(2000)
                     alt_found = False
                     for sel in alt_selectors:
                         try:
@@ -119,7 +122,7 @@ def main() -> None:
                             break
                     if alt_found and close_all_popups(page):
                         popup_closed = True
-                        wait(page)
+                        page.wait_for_timeout(2000)
                     if not popup_closed:
                         # 메뉴 탐색 재시도
                         menu_found = False
