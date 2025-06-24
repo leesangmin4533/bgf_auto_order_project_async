@@ -1,4 +1,5 @@
 import os
+import datetime
 from dotenv import load_dotenv
 from playwright.sync_api import Page
 from utils import log, handle_exception
@@ -43,12 +44,29 @@ def perform_login(page: Page, structure: dict) -> bool:
         log("[로그인] 로그인 버튼 클릭")
         login_btn.click()
 
+        # Close the '재택 유선권장 안내' layer popup that appears right after login
+        closed = False
+        for _ in range(2):
+            closed = close_layer_popup(
+                page,
+                popup_selector=".el-dialog",
+                close_selector="button:has-text('닫기')",
+            )
+            if closed:
+                break
+        if not closed:
+            log("❌ 레이어 팝업 닫기 실패", stage="팝업 처리")
+            try:
+                ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                page.screenshot(path=f"screenshots/popup_close_fail_{ts}.png")
+            except Exception:
+                pass
+
         log("[로그인] 로그인 후 로딩 대기")
         page.wait_for_selector("#topMenu", timeout=5000)
 
         log("[로그인] 로그인 성공 판단 완료")
         setup_dialog_handler(page)
-        close_layer_popup(page, "#popup", "#popup-close")
         return True
 
     except Exception as e:
