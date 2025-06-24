@@ -75,7 +75,8 @@ def perform_login(page: Page, structure: dict) -> bool:
         # 모든 팝업이 닫힐 때까지 반복적으로 탐색
         wait(page)
         close_all_popups(page)
-        wait(page)
+        # 팝업을 모두 닫은 후 DOM 안정화를 위해 3초간 대기
+        page.wait_for_timeout(3000)
 
         # 로딩 진행 표시가 사라질 때까지 대기
         try:
