@@ -460,14 +460,13 @@ def update_instruction_state(step: str, failure: str | None = None) -> None:
 
 
 def handle_exception(page: Page, context: str, e: Exception) -> None:
-    """Log exception with screenshot for easier debugging."""
-    log(f"❌ 예외 발생 - {context}: {e}")
-    log(traceback.format_exc())
+    """Log error reason and save screenshot for debugging."""
+    log(f"❌ 예외 발생 - {context}: {str(e)}")
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = Path("screenshots") / f"error_{context}_{timestamp}.png"
-    path.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs("screenshots", exist_ok=True)
+    path = f"screenshots/error_{context}_{timestamp}.png"
     try:
-        page.screenshot(path=str(path))
+        page.screenshot(path=path)
         log(f"🖼️ 스크린샷 저장됨: {path}")
     except Exception as se:
         log(f"스크린샷 저장 실패: {se}")

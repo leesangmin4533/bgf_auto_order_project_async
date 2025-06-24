@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from playwright.sync_api import Page
-from utils import log
+from utils import log, handle_exception
 from browser.popup_handler_utility import close_layer_popup, setup_dialog_handler
 
 load_dotenv()
@@ -17,26 +17,23 @@ def perform_login(page: Page, structure: dict) -> bool:
         log("❗ LOGIN_ID 또는 LOGIN_PW가 설정되지 않았습니다", stage="로그인")
         return False
 
-    log("➡️ perform_login() 진입", stage="로그인 단계")
-    log("로그인 페이지 접속", stage="로그인")
-    page.goto(URL)
-    page.locator(structure["id"]).click()
-    page.keyboard.type(user_id)
-    page.locator(structure["password"]).click()
-    page.keyboard.type(user_pw)
-    page.locator(structure["login_button"]).click()
-    page.wait_for_load_state("networkidle")
     try:
+        log("[로그인] 입력값 채우기")
+        page.goto(URL)
+        page.fill(structure["id"], user_id)
+        page.fill(structure["password"], user_pw)
+
+        log("[로그인] 로그인 버튼 클릭")
+        page.click(structure["login_button"])
+
+        log("[로그인] 로그인 후 로딩 대기")
         page.wait_for_selector("#topMenu", timeout=5000)
-    except Exception:
-        pass
 
-    if "login" in page.url or not page.locator("#topMenu").is_visible():
-        log("❌ 로그인 실패")
+        log("[로그인] 로그인 성공 판단 완료")
+        setup_dialog_handler(page)
+        close_layer_popup(page, "#popup", "#popup-close")
+        return True
+
+    except Exception as e:
+        handle_exception(page, "perform_login", e)
         return False
-
-    log("✅ 로그인 성공")
-    setup_dialog_handler(page)
-    # 선제적으로 알려진 레이어 팝업 처리
-    close_layer_popup(page, "#popup", "#popup-close")
-    return True
