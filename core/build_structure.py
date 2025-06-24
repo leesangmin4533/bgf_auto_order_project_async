@@ -3,8 +3,9 @@ import os
 from bs4 import BeautifulSoup
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-INPUT_HTML = os.path.join(BASE_DIR, "sample_login_page.html")
-OUTPUT_JSON = os.path.join(BASE_DIR, "page_structure.json")
+ROOT_DIR = os.path.dirname(BASE_DIR)
+INPUT_HTML = os.path.join(ROOT_DIR, "sample_login_page.html")
+OUTPUT_JSON = os.path.join(ROOT_DIR, "config", "page_structure.json")
 
 
 def build_structure(html_path: str = INPUT_HTML, output_path: str = OUTPUT_JSON) -> None:

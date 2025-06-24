@@ -9,7 +9,7 @@ from utils import (
     popups_handled,
     log,
 )
-from handlers.popup_handler import (
+from browser.popup_handler import (
     setup_dialog_handler,
     close_detected_popups,
 )
@@ -31,15 +31,18 @@ load_dotenv()
 
 # 프로젝트 루트 디렉터리 경로
 BASE_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = BASE_DIR
 
 
 def load_config():
-    with open(BASE_DIR / "runtime_config.json", "r", encoding="utf-8") as f:
+    config_path = ROOT_DIR / "config" / "runtime_config.json"
+    with open(config_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def load_structure():
-    with open(BASE_DIR / "page_structure.json", "r", encoding="utf-8") as f:
+    structure_path = ROOT_DIR / "config" / "page_structure.json"
+    with open(structure_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
