@@ -17,7 +17,10 @@ def main():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
-        perform_login(page)
+        if not perform_login(page):
+            browser.close()
+            return
+
         if not process_popups_once(page):
             browser.close()
             return
