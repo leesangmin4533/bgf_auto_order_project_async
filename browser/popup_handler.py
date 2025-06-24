@@ -5,7 +5,7 @@ import time
 from typing import Iterable
 
 from playwright.sync_api import Page, expect
-from .popup_handler_utility import remove_overlay
+from .popup_utils import remove_overlay
 
 import utils
 
