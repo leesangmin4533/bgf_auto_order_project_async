@@ -6,6 +6,7 @@ from typing import Iterable
 
 from playwright.sync_api import Page, expect
 from .popup_utils import remove_overlay
+from popup_text_handler import handle_popup_by_text
 
 import utils
 
@@ -294,11 +295,10 @@ def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> boo
 
     for _ in range(max(2, loops)):
         found = False
-        try:
-            if not page.locator("#topMenu").is_visible(timeout=1000):
-                remove_overlay(page)
-        except Exception:
-            remove_overlay(page)
+        if handle_popup_by_text(page):
+            found = True
+            time.sleep(wait_ms / 1000)
+            continue
         for frame in [page, *page.frames]:
             if hasattr(frame, "is_detached") and frame.is_detached():
                 continue
