@@ -115,8 +115,10 @@ def main() -> None:
             page.locator(login_keyword).click()
 
             page.wait_for_load_state("networkidle")
-            if "login" in page.url or login_page_visible(page):
-                log("❌ 로그인 실패로 판단. 팝업 처리 생략 및 자동화 종료")
+            if not ("login" in page.url) and page.locator("#topMenu").is_visible():
+                log("✅ 로그인 성공")
+            else:
+                log("❌ 로그인 실패로 판단. 자동화 종료")
                 return
 
             if wait_after_login:
