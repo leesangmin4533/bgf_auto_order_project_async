@@ -75,14 +75,10 @@ def main() -> None:
         setup_dialog_handler(page)
         normal_exit = False
         try:
-            log("➡️ perform_login() 호출", stage="로그인 단계")
-            try:
-                if not perform_login(page, structure):
-                    update_instruction_state("종료", "로그인 실패")
-                    return
-            except Exception as e:
-                handle_exception(page, "로그인", e)
-                update_instruction_state("종료", "로그인 중 예외")
+            log("[로그인 단계] ➡️ perform_login() 호출")
+            if not perform_login(page, structure):
+                log("[로그인 단계] ❌ perform_login 실패 → 로그인 종료")
+                update_instruction_state("종료", "로그인 실패")
                 return
 
             update_instruction_state("팝업 처리 중")
