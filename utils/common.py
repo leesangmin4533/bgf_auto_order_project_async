@@ -156,7 +156,10 @@ def setup_dialog_handler(page, auto_accept: bool = True) -> None:
                 log("❌ '추가 대화 차단' 다이얼로그 감지")
                 raise RuntimeError("Dialog blocked by browser")
             if auto_accept:
-                dialog.accept()
+                try:
+                    dialog.accept()
+                except Exception as e:
+                    log(f"dialog.accept 오류: {e}")
             else:
                 try:
                     dialog.dismiss()

@@ -7,7 +7,7 @@ from browser.popup_handler_utility import (
     close_all_popups,
     setup_dialog_handler,
 )
-from browser.popup_handler import register_dialog_handler
+from browser.popup_handler import register_dialog_handler, add_safe_accept_once
 
 load_dotenv()
 
@@ -55,7 +55,7 @@ def perform_login(page: Page, structure: dict) -> bool:
         login_btn = page.locator(structure["login_button"])
         log("[로그인] 로그인 버튼 클릭")
         wait(page)
-        register_dialog_handler(page)
+        add_safe_accept_once(page)
         page.wait_for_timeout(2000)
         login_btn.click()
         page.wait_for_timeout(2000)
