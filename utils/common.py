@@ -3,6 +3,8 @@ import json
 import time
 import subprocess
 import datetime
+import traceback
+from pathlib import Path
 import pyautogui
 import pygetwindow as gw
 from playwright.sync_api import Page
@@ -23,10 +25,13 @@ def set_ignore_popup_failure(value: bool) -> None:
     _ignore_popup_failure = value
 
 
-def log(msg: str) -> None:
-    """Print a log message with current time."""
+def log(msg: str, stage: str | None = None) -> None:
+    """Print a log message with current time and optional stage."""
     timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-    print(f"[{timestamp}] {msg}")
+    if stage:
+        print(f"[{timestamp}] [{stage}] {msg}")
+    else:
+        print(f"[{timestamp}] {msg}")
 
 
 def popups_handled() -> bool:
@@ -433,7 +438,6 @@ def process_popups_once(page: Page, *, force: bool = False) -> bool:
     _processed_popups = True
     return result
 
-from pathlib import Path
 
 def update_instruction_state(step: str, failure: str | None = None) -> None:
     """Update progress status in codex_instruction.txt."""
@@ -453,3 +457,17 @@ def update_instruction_state(step: str, failure: str | None = None) -> None:
         else:
             new_lines.append(line)
     instr_path.write_text("\n".join(new_lines), encoding="utf-8")
+
+
+def handle_exception(page: Page, context: str, e: Exception) -> None:
+    """Log exception with screenshot for easier debugging."""
+    log(f"❌ 예외 발생 - {context}: {e}")
+    log(traceback.format_exc())
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = Path("screenshots") / f"error_{context}_{timestamp}.png"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        page.screenshot(path=str(path))
+        log(f"🖼️ 스크린샷 저장됨: {path}")
+    except Exception as se:
+        log(f"스크린샷 저장 실패: {se}")
