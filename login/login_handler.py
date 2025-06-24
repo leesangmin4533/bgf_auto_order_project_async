@@ -2,7 +2,7 @@ import os
 from playwright.sync_api import Page
 from dotenv import load_dotenv
 from popup_handler import is_logged_in
-from utils import log
+from common import log
 
 load_dotenv()
 ID = os.getenv("LOGIN_ID")
