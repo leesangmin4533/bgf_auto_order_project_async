@@ -1,8 +1,11 @@
 from __future__ import annotations
-import time
+
 import datetime
+import time
 from typing import Iterable
+
 from playwright.sync_api import Page, expect
+
 import utils
 
 # 구조화된 팝업 정의 목록
@@ -15,6 +18,7 @@ POPUP_DEFINITIONS = [
             "button:has-text('닫기')",
             "a:has-text('닫기')",
             "[class*='close']",
+            "[id*='close']",
             "button:has-text('✕')",
             "text=✕",
         ],
@@ -48,20 +52,22 @@ def dialog_blocked(page: Page) -> bool:
     return False
 
 
+def is_logged_in(page: Page) -> bool:
+    """Return ``True`` if the main menu after login is visible."""
+    try:
+        return page.locator("#topMenu").is_visible(timeout=3000)
+    except Exception:
+        return False
+
+
 def login_page_visible(page: Page) -> bool:
-    """Check if login form fields are visible (session expired)."""
-    selectors = [
-        "[id='mainframe.HFrameSet00.LoginFrame.form.div_login.form.edt_id:input']",
-        "[id='mainframe.HFrameSet00.LoginFrame.form.div_login.form.edt_pw:input']",
-    ]
-    for sel in selectors:
-        try:
-            loc = page.locator(sel)
-            if loc.count() > 0 and loc.first.is_visible():
-                return True
-        except Exception:
-            continue
-    return False
+    """Return ``True`` if login form is visible or login is not confirmed."""
+    try:
+        if page.locator("#loginForm").is_visible(timeout=1000):
+            return True
+    except Exception:
+        pass
+    return not is_logged_in(page)
 
 
 def _locators_iter(frame: Page, selectors: Iterable[str]):
@@ -78,6 +84,7 @@ def _locators_iter(frame: Page, selectors: Iterable[str]):
 def close_all_popups(page: Page, *, max_loops: int = 5, wait_ms: int = 500) -> bool:
     """Close all popups defined in ``POPUP_DEFINITIONS`` until none remain."""
 
+    max_loops = max(2, max_loops)
     loops = 0
     closed_any = False
     while loops < max_loops:
@@ -102,7 +109,9 @@ def close_all_popups(page: Page, *, max_loops: int = 5, wait_ms: int = 500) -> b
                         loc = cont.locator(sel)
                         if loc.count() == 0:
                             loc = frame.locator(sel)
-                        for _, btn in ((idx, loc.nth(idx)) for idx in range(loc.count())):
+                        for _, btn in (
+                            (idx, loc.nth(idx)) for idx in range(loc.count())
+                        ):
                             if btn.is_visible():
                                 try:
                                     btn.click(timeout=0)
@@ -187,14 +196,19 @@ def handle_text_popups(page: Page) -> None:
         + [f"button:has-text('{t}')" for t in texts]
         + [f"div[class*='nexacontentsbox']:has-text('{t}')" for t in texts]
         + [f"div[id*='btn_enter']:has-text('{t}')" for t in texts]
-        + ["div[class*='nexacontentsbox']:has-text('확인하기')", "div[id*='btn_enter']:has-text('확인')"]
+        + [
+            "div[class*='nexacontentsbox']:has-text('확인하기')",
+            "div[id*='btn_enter']:has-text('확인')",
+        ]
     )
 
     # 로그아웃 유도 팝업 감지 시 자동 클릭 중단
     for frame in [page, *page.frames]:
         for kw in logout_keywords:
             try:
-                warning = frame.locator(f"div[class*='nexacontentsbox']:has-text('{kw}')")
+                warning = frame.locator(
+                    f"div[class*='nexacontentsbox']:has-text('{kw}')"
+                )
                 if warning.count() > 0 and warning.first.is_visible():
                     utils.log(f"⚠️ 로그아웃 관련 팝업 감지: {kw}")
                     return
