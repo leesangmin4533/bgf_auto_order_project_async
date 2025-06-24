@@ -10,7 +10,7 @@ POPUP_RULES = [
     {
         "contains": ["비밀번호를 입력"],
         "selector": "dialog",
-        "action": lambda page, sel: page.on("dialog", lambda d: d.accept()),
+        "action": lambda page, sel: page.once("dialog", lambda d: d.accept()),
     },
     {
         "contains": ["세션이 만료"],

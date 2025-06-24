@@ -127,7 +127,7 @@ def click_and_type(points: dict, point_key: str, text: str | None = None, tab_af
 
 
 def setup_dialog_handler(page, auto_accept: bool = True) -> None:
-    """Register a Playwright dialog handler on the given page.
+    """Register a Playwright dialog handler once on the given page.
 
     Parameters
     ----------
@@ -166,7 +166,11 @@ def setup_dialog_handler(page, auto_accept: bool = True) -> None:
         except Exception as e:
             print(f"다이얼로그 처리 오류: {e}")
 
+    if getattr(page, "_dialog_handler_registered", False):
+        return
+
     page.on("dialog", _handle)
+    setattr(page, "_dialog_handler_registered", True)
 
 
 def fallback_close_popups(page: Page) -> None:
