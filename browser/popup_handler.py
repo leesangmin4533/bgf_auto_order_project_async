@@ -3,9 +3,35 @@ from __future__ import annotations
 import datetime
 import time
 from playwright.sync_api import Page
+import utils
 from popup_text_handler import handle_popup_by_text
 
-import utils
+# 외부에서 사용할 안전한 dialog accept 핸들러
+def safe_accept(dialog) -> None:
+    """Safely accept dialogs, caching the last message to avoid repeats."""
+    global _last_dialog_message
+    try:
+        msg = dialog.message
+        if _last_dialog_message == msg:
+            utils.log("⚠️ 중복 다이얼로그 무시")
+            return
+        _last_dialog_message = msg
+        utils.log(f"🟡 다이얼로그 감지됨: '{msg}'")
+        try:
+            dialog.accept()
+        except Exception as e:
+            utils.log(f"dialog.accept 실패: {e}")
+        time.sleep(2)
+    except Exception as e:  # pragma: no cover - logging only
+        utils.log(f"❌ 다이얼로그 처리 실패 또는 중복 처리 시도됨: {e}")
+
+
+def add_safe_accept_once(page: Page) -> None:
+    """Attach ``safe_accept`` once to the given page."""
+    try:
+        page.once("dialog", safe_accept)
+    except Exception as e:  # pragma: no cover - logging only
+        utils.log(f"❌ dialog 핸들러 등록 실패: {e}")
 
 # 마지막으로 처리된 dialog 메시지 저장용
 _last_dialog_message: str | None = None
@@ -61,26 +87,9 @@ def is_logged_in(page: Page) -> bool:
 
 
 def register_dialog_handler(page: Page) -> None:
-    """Register a one-time dialog handler with error protection."""
+    """Register ``safe_accept`` once on the page."""
 
-    def safe_accept(dialog) -> None:
-        global _last_dialog_message
-        try:
-            msg = dialog.message
-            if _last_dialog_message == msg:
-                utils.log("⚠️ 중복 다이얼로그 무시")
-                return
-            _last_dialog_message = msg
-            utils.log(f"🟡 다이얼로그 감지됨: '{msg}'")
-            dialog.accept()
-            time.sleep(2)
-        except Exception as e:  # pragma: no cover - logging only
-            utils.log(f"❌ 다이얼로그 처리 실패 또는 중복 처리 시도됨: {e}")
-
-    try:
-        page.once("dialog", safe_accept)
-    except Exception as e:  # pragma: no cover - logging only
-        utils.log(f"❌ dialog 핸들러 등록 실패: {e}")
+    add_safe_accept_once(page)
 
 
 def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
@@ -113,7 +122,10 @@ def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
                 utils.log("❌ '추가 대화 차단' 다이얼로그 감지")
                 raise RuntimeError("Dialog blocked by browser")
             if auto_accept:
-                dialog.accept()
+                try:
+                    dialog.accept()
+                except Exception as e:
+                    utils.log(f"dialog.accept 오류: {e}")
             else:
                 try:
                     dialog.dismiss()
@@ -167,7 +179,7 @@ def close_detected_popups(page: Page, loops: int = 2, wait_ms: int = 500) -> boo
                     if not btn.is_visible():
                         continue
                     try:
-                        frame.once("dialog", lambda d: d.accept())
+                        add_safe_accept_once(frame)
                         with frame.expect_popup(timeout=500) as pop:
                             btn.click(timeout=0)
                         if pop.value:

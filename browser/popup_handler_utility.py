@@ -1,7 +1,11 @@
 import datetime
 from playwright.sync_api import Page, TimeoutError
 import utils
-from .popup_handler import setup_dialog_handler as _setup_dialog_handler, register_dialog_handler
+from .popup_handler import (
+    setup_dialog_handler as _setup_dialog_handler,
+    register_dialog_handler,
+    add_safe_accept_once,
+)
 
 from popup_text_handler import handle_popup_by_text
 
@@ -39,7 +43,7 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 1000) -> b
                 if not btn.is_visible():
                     continue
                 try:
-                    page.once("dialog", lambda d: d.accept())
+                    add_safe_accept_once(page)
                     with page.expect_popup(timeout=500) as pop:
                         btn.click(timeout=0)
                     if pop.value:
@@ -137,7 +141,7 @@ def close_layer_popup(
             try:
                 btn = page.locator(sel)
                 if btn.count() > 0 and btn.first.is_visible():
-                    page.once("dialog", lambda d: d.accept())
+                    add_safe_accept_once(page)
                     with page.expect_popup(timeout=500) as pop_info:
                         btn.first.click()
                     if pop_info.value:
