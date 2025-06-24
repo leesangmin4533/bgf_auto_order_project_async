@@ -55,7 +55,8 @@ def dialog_blocked(page: Page) -> bool:
 def is_logged_in(page: Page) -> bool:
     """Return ``True`` if the main menu after login is visible."""
     try:
-        return page.locator("#topMenu").is_visible(timeout=3000)
+        page.wait_for_selector("#topMenu", timeout=5000)
+        return True
     except Exception:
         return False
 

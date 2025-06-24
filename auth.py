@@ -14,10 +14,11 @@ def perform_login(page: Page, structure: dict) -> bool:
     user_id = os.getenv("LOGIN_ID")
     user_pw = os.getenv("LOGIN_PW")
     if not user_id or not user_pw:
-        log("❗ LOGIN_ID 또는 LOGIN_PW가 설정되지 않았습니다")
+        log("❗ LOGIN_ID 또는 LOGIN_PW가 설정되지 않았습니다", stage="로그인")
         return False
 
-    log("➡️ 로그인 페이지 접속")
+    log("➡️ perform_login() 진입", stage="로그인 단계")
+    log("로그인 페이지 접속", stage="로그인")
     page.goto(URL)
     page.locator(structure["id"]).click()
     page.keyboard.type(user_id)
