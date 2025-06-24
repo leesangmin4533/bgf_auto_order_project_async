@@ -4,22 +4,8 @@ from playwright.sync_api import Page, TimeoutError
 import utils
 from .popup_handler import setup_dialog_handler as _setup_dialog_handler
 
+from .popup_utils import remove_overlay
 
-def remove_overlay(page: Page, selector: str = "#nexacontainer", timeout: int = 3000) -> None:
-    """Wait for overlay to disappear and remove it if still visible."""
-    try:
-        overlay = page.locator(selector)
-        if overlay.count() > 0 and overlay.first.is_visible():
-            try:
-                overlay.first.wait_for(state="hidden", timeout=timeout)
-            except TimeoutError:
-                utils.log(f"❗ 오버레이 계속 표시되어 remove() 시도: {selector}")
-                try:
-                    overlay.evaluate("el => el.remove()")
-                except Exception as e:  # pragma: no cover - logging only
-                    utils.log(f"오버레이 제거 실패: {e}")
-    except Exception as e:  # pragma: no cover - logging only
-        utils.log(f"오버레이 감지 오류: {e}")
 
 
 def setup_dialog_handler(page: Page, accept: bool = True) -> None:
