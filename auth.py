@@ -60,8 +60,19 @@ def perform_login(page: Page, structure: dict) -> bool:
         # 모든 팝업이 닫힐 때까지 반복적으로 탐색
         close_all_popups(page)
 
+        # 로딩 진행 표시가 사라질 때까지 대기
+        try:
+            page.locator(".progress-container").wait_for(state="hidden", timeout=5000)
+        except Exception:
+            log("로딩 UI가 사라지지 않음 → 무시하고 다음 진행")
+
         log("[로그인] 로그인 후 메뉴 로딩 대기")
-        page.wait_for_selector("#topMenu", timeout=5000)
+        try:
+            page.wait_for_selector("#topMenu", timeout=10000)
+        except Exception:
+            log("⚠️ 메뉴 로딩 실패 - #topMenu 미감지")
+        else:
+            log("✅ 메뉴 로딩 완료")
 
         log("[로그인] 로그인 성공 판단 완료")
         setup_dialog_handler(page)

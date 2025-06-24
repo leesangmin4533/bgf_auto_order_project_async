@@ -97,11 +97,12 @@ def main() -> None:
 
             page.wait_for_timeout(2000)
             try:
-                page.wait_for_selector("#topMenu", timeout=5000)
+                page.wait_for_selector("#topMenu", timeout=10000)
             except Exception as e:
+                log("⚠️ 메뉴 로딩 실패 - #topMenu 미감지", stage="로그인후요소")
                 handle_exception(page, "로그인후요소", e)
-                update_instruction_state("종료", "로그인 후 요소 나타나지 않음")
-                return
+            else:
+                log("✅ 메뉴 로딩 완료", stage="로그인후요소")
 
             page.wait_for_timeout(max(1000, wait_after_login * 1000))
 

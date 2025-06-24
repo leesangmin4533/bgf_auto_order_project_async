@@ -61,22 +61,41 @@ def dialog_blocked(page: Page) -> bool:
 
 
 def is_logged_in(page: Page) -> bool:
-    """Return ``True`` if the main menu after login is visible."""
+    """Return ``True`` if the main menu after login is visible.
+
+    The ``#topMenu`` element is waited for up to 10 seconds. If it isn't
+    found, frames are also searched. When ``#loginForm`` is still visible the
+    login is treated as failed, otherwise we log a warning and regard the login
+    as succeeded even though the menu failed to load.
+    """
+
     try:
-        page.wait_for_selector("#topMenu", timeout=5000)
+        page.wait_for_selector("#topMenu", timeout=10000)
         return True
     except Exception:
-        return False
+        utils.log("#topMenu 직접 탐색 실패, 프레임 탐색 시도")
+        for frame in page.frames:
+            try:
+                if frame.locator("#topMenu").is_visible():
+                    utils.log("✅ topMenu 프레임 내에서 감지됨")
+                    return True
+            except Exception:
+                continue
+        try:
+            if page.locator("#loginForm").is_visible(timeout=500):
+                return False
+        except Exception:
+            pass
+        utils.log("⚠️ 메뉴 로딩 실패 - 로그인은 성공으로 간주")
+        return True
 
 
 def login_page_visible(page: Page) -> bool:
-    """Return ``True`` if login form is visible or login is not confirmed."""
+    """Return ``True`` if the login form is still visible."""
     try:
-        if page.locator("#loginForm").is_visible(timeout=1000):
-            return True
+        return page.locator("#loginForm").is_visible(timeout=1000)
     except Exception:
-        pass
-    return not is_logged_in(page)
+        return False
 
 
 def _locators_iter(frame: Page, selectors: Iterable[str]):
