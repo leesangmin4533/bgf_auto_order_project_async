@@ -59,7 +59,10 @@ def is_logged_in(page: Page) -> bool:
 
 
 def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
-    """Register a dialog handler that auto processes common dialogs."""
+    """Register a dialog handler once to auto process common dialogs."""
+
+    if getattr(page, "_dialog_handler_registered", False):
+        return
 
     def _handle(dialog) -> None:
         logout_keywords = ["종료 하시겠습니까", "로그아웃", "세션 종료"]
@@ -90,6 +93,7 @@ def setup_dialog_handler(page: Page, auto_accept: bool = True) -> None:
             utils.log(f"다이얼로그 처리 오류: {e}")
 
     page.on("dialog", _handle)
+    setattr(page, "_dialog_handler_registered", True)
 
 
 

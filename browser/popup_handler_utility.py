@@ -24,6 +24,7 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 1000) -> b
         "[id*='close']",
     ]
 
+    closed_any = False
     for _ in range(max(2, loops)):
         found = False
         for sel in selectors:
@@ -43,6 +44,9 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 1000) -> b
                     if pop.value:
                         pop.value.close()
                     found = True
+                    closed_any = True
+                except TimeoutError:
+                    utils.log("팝업 이벤트 시간 초과 → 다음으로 진행")
                 except Exception as e:
                     utils.log(f"닫기 버튼 클릭 실패: {e}")
                     try:
@@ -53,6 +57,25 @@ def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 1000) -> b
         if not found:
             break
         page.wait_for_timeout(wait_ms)
+
+    if not closed_any:
+        ok_selectors = ["text=확인", "button:has-text('확인')", "input[value='확인']"]
+        for ok_sel in ok_selectors:
+            try:
+                ok_btns = page.locator(ok_sel)
+            except Exception:
+                continue
+            for i in range(ok_btns.count()):
+                btn = ok_btns.nth(i)
+                if btn.is_visible():
+                    try:
+                        btn.click(timeout=0)
+                        found = True
+                        break
+                    except Exception:
+                        continue
+            if found:
+                break
 
     # verify no popups remain
     for sel in selectors:
