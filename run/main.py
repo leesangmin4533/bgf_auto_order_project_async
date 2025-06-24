@@ -32,9 +32,12 @@ from utils import (
     set_ignore_popup_failure,
     log,
 )
-from browser.popup_handler_utility import setup_dialog_handler, close_layer_popup
+from browser.popup_handler_utility import (
+    setup_dialog_handler,
+    close_layer_popup,
+    close_all_popups_event,
+)
 from browser.popup_handler import (
-    close_detected_popups,
     dialog_blocked,
     login_page_visible,
 )
@@ -128,7 +131,7 @@ def main() -> None:
             close_layer_popup(page, "#popup", "#popup-close")
 
             log("🟡 팝업 처리 시작")
-            if not close_detected_popups(page):
+            if not close_all_popups_event(page):
                 log("❗ 팝업을 모두 닫지 못해 자동화를 중단합니다")
                 return
             if "차단되었습니다" in page.content():

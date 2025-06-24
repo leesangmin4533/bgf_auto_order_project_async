@@ -9,10 +9,8 @@ from utils import (
     popups_handled,
     log,
 )
-from browser.popup_handler import (
-    setup_dialog_handler,
-    close_detected_popups,
-)
+from browser.popup_handler import setup_dialog_handler
+from browser.popup_handler_utility import close_all_popups_event
 
 
 def click_sales_analysis_tab(page) -> bool:
@@ -101,7 +99,7 @@ def run():
                 page.wait_for_timeout(wait_after_login * 1000)
 
             if not popups_handled():
-                if not close_detected_popups(page):
+                if not close_all_popups_event(page):
                     log("❗ 팝업을 모두 닫지 못해 작업을 중단합니다")
                     return
 

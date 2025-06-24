@@ -1,5 +1,7 @@
 import time
+import datetime
 from playwright.sync_api import Page
+from playwright.sync_api import TimeoutError
 import utils
 from .popup_handler import setup_dialog_handler as _setup_dialog_handler
 
@@ -9,15 +11,81 @@ def setup_dialog_handler(page: Page, accept: bool = True) -> None:
     _setup_dialog_handler(page, auto_accept=accept)
 
 
+def close_popup_windows(page: Page, timeout: int = 1000) -> None:
+    """Close popup windows spawned from the current page."""
+    while True:
+        try:
+            popup = page.wait_for_event("popup", timeout=timeout).value
+            popup.wait_for_load_state()
+            popup.close()
+            utils.log("새 창 팝업 닫힘")
+        except TimeoutError:
+            break
+
+
+def close_all_popups_event(page: Page, loops: int = 2, wait_ms: int = 500) -> bool:
+    """Search and close popups using event based waits."""
+    selectors = [
+        "text=닫기",
+        "button:has-text('닫기')",
+        "a:has-text('닫기')",
+        "[class*='close']",
+        "[id*='close']",
+    ]
+
+    for _ in range(max(2, loops)):
+        found = False
+        for sel in selectors:
+            try:
+                locs = page.locator(sel)
+            except Exception as e:
+                utils.log(f"선택자 오류({sel}): {e}")
+                continue
+            for i in range(locs.count()):
+                btn = locs.nth(i)
+                if not btn.is_visible():
+                    continue
+                try:
+                    page.once("dialog", lambda d: d.accept())
+                    with page.expect_popup(timeout=500) as pop:
+                        btn.click(timeout=0)
+                    if pop.value:
+                        pop.value.close()
+                    found = True
+                except Exception as e:
+                    utils.log(f"닫기 버튼 클릭 실패: {e}")
+                    try:
+                        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                        page.screenshot(path=f"popup_error_{ts}.png")
+                    except Exception:
+                        pass
+        close_popup_windows(page, timeout=500)
+        if not found:
+            break
+        page.wait_for_timeout(wait_ms)
+
+    # verify no popups remain
+    for sel in selectors:
+        try:
+            locs = page.locator(sel)
+        except Exception:
+            continue
+        for i in range(locs.count()):
+            if locs.nth(i).is_visible():
+                utils.popup_handled = False
+                return False
+    utils.popup_handled = True
+    return True
+
+
 def close_layer_popup(
     page: Page,
     popup_selector: str,
     close_selector: str,
     *,
     timeout: int = 5000,
-    check_interval: int = 500,
 ) -> bool:
-    """Close a specific layer popup and wait until it disappears.
+    """Close a specific layer popup using event based wait.
 
     Parameters
     ----------
@@ -29,8 +97,6 @@ def close_layer_popup(
         Selector for the popup close button.
     timeout : int, optional
         Maximum waiting time in milliseconds. Default is 5000.
-    check_interval : int, optional
-        Interval between visibility checks in milliseconds. Default is 500.
 
     Returns
     -------
@@ -39,32 +105,51 @@ def close_layer_popup(
         or error.
     """
     try:
-        start = time.time()
         layer = page.locator(popup_selector)
         if layer.count() == 0 or not layer.first.is_visible():
             return True
-        # Try close button using various selectors
-        selectors = [close_selector, "text=닫기", "button:has-text('닫기')", "a:has-text('닫기')"]
+
+        selectors = [
+            close_selector,
+            "text=닫기",
+            "button:has-text('닫기')",
+            "a:has-text('닫기')",
+            "[class*='close']",
+        ]
         clicked = False
         for sel in selectors:
             try:
                 btn = page.locator(sel)
                 if btn.count() > 0 and btn.first.is_visible():
-                    btn.first.click()
+                    page.once("dialog", lambda d: d.accept())
+                    with page.expect_popup(timeout=500) as pop_info:
+                        btn.first.click()
+                    if pop_info.value:
+                        pop_info.value.close()
                     clicked = True
                     break
             except Exception as e:
                 utils.log(f"닫기 버튼 탐색 오류({sel}): {e}")
         if not clicked:
             utils.log(f"❌ 닫기 버튼을 찾지 못했습니다: {close_selector}")
-        # Wait until popup disappears
-        while time.time() - start < timeout / 1000:
-            if layer.count() == 0 or not layer.first.is_visible():
-                utils.log("✅ 레이어 팝업 닫힘")
-                return True
-            page.wait_for_timeout(check_interval)
-        utils.log("❌ 레이어 팝업 닫기 시간 초과")
-        return False
+
+        try:
+            layer.first.wait_for(state="hidden", timeout=timeout)
+            utils.log("✅ 레이어 팝업 닫힘")
+            return True
+        except TimeoutError:
+            utils.log("❌ 레이어 팝업 닫기 시간 초과")
+            try:
+                ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                page.screenshot(path=f"layer_popup_error_{ts}.png")
+            except Exception:
+                pass
+            return False
     except Exception as e:  # pragma: no cover - logging only
         utils.log(f"레이어 팝업 처리 오류: {e}")
+        try:
+            ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            page.screenshot(path=f"layer_popup_error_{ts}.png")
+        except Exception:
+            pass
         return False
