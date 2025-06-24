@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
+import utils
 
 load_dotenv()
 
@@ -15,6 +16,7 @@ def close_popups(page, loops: int = 2) -> bool:
     """Close visible popups by searching common close buttons."""
     global POPUPS_CLOSED
     if POPUPS_CLOSED:
+        utils.popup_handled = True
         return True
 
     selectors = [
@@ -51,11 +53,13 @@ def close_popups(page, loops: int = 2) -> bool:
             for i in range(locs.count()):
                 if locs.nth(i).is_visible():
                     POPUPS_CLOSED = False
+                    utils.popup_handled = False
                     return False
         except Exception:
             continue
 
     POPUPS_CLOSED = True
+    utils.popup_handled = True
     return True
 
 
